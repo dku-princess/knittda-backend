@@ -2,12 +2,14 @@ package com.example.knittdaserver.entity;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Size;
-import lombok.Getter;
-import lombok.ToString;
+import lombok.*;
 
 @Entity
 @Getter
 @ToString
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class Design {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
