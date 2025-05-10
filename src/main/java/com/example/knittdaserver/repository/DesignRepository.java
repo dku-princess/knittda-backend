@@ -52,4 +52,5 @@ public interface DesignRepository extends JpaRepository<Design, Long>, DesignRep
                 end            
             """)
     List<DesignDto> searchTwoKeywords(@Param("kw1") String kw1, @Param("kw2") String kw2 );
+    Design findByTitle(String title);
 }
