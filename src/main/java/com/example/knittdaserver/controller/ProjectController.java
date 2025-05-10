@@ -52,7 +52,7 @@ public class ProjectController {
     }
 
     @Operation(summary = "프로젝트 수정", description = "특정 프로젝트의 정보를 수정합니다.")
-    @PutMapping("/{projectId}")
+    @PutMapping("/")
     public ResponseEntity<ApiResponse<ProjectDto>> updateProject(
             @RequestHeader(name = "Authorization") String token,
             @RequestBody @Valid UpdateProjectRequest request) {
