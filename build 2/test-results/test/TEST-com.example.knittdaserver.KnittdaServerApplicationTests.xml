@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.example.knittdaserver.KnittdaServerApplicationTests" tests="1" skipped="0" failures="0" errors="0" timestamp="2025-05-10T02:31:20.456Z" hostname="ijisus-Mac-mini.local" time="0.259">
+  <properties/>
+  <testcase name="contextLoads()" classname="com.example.knittdaserver.KnittdaServerApplicationTests" time="0.259"/>
+  <system-out><![CDATA[11:31:18.712 [Test worker] INFO org.springframework.test.context.support.AnnotationConfigContextLoaderUtils -- Could not detect default configuration classes for test class [com.example.knittdaserver.KnittdaServerApplicationTests]: KnittdaServerApplicationTests does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+11:31:18.741 [Test worker] INFO org.springframework.boot.test.context.SpringBootTestContextBootstrapper -- Found @SpringBootConfiguration com.example.knittdaserver.KnittdaServerApplication for test class com.example.knittdaserver.KnittdaServerApplicationTests
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+ :: Spring Boot ::                (v3.1.9)
+
+2025-05-10T11:31:18.837+09:00  INFO 13839 --- [    Test worker] c.e.k.KnittdaServerApplicationTests      : Starting KnittdaServerApplicationTests using Java 21.0.6 with PID 13839 (started by jisoolee in /Users/jisoolee/Library/Mobile Documents/com~apple~CloudDocs/CODE_SPACE/knittda-backend)
+2025-05-10T11:31:18.837+09:00  INFO 13839 --- [    Test worker] c.e.k.KnittdaServerApplicationTests      : No active profile set, falling back to 1 default profile: "default"
+2025-05-10T11:31:19.043+09:00  INFO 13839 --- [    Test worker] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2025-05-10T11:31:19.089+09:00  INFO 13839 --- [    Test worker] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 44 ms. Found 3 JPA repository interfaces.
+2025-05-10T11:31:19.217+09:00  INFO 13839 --- [    Test worker] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
+2025-05-10T11:31:19.230+09:00  INFO 13839 --- [    Test worker] org.hibernate.Version                    : HHH000412: Hibernate ORM core version 6.2.22.Final
+2025-05-10T11:31:19.231+09:00  INFO 13839 --- [    Test worker] org.hibernate.cfg.Environment            : HHH000406: Using bytecode reflection optimizer
+2025-05-10T11:31:19.301+09:00  INFO 13839 --- [    Test worker] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2025-05-10T11:31:19.308+09:00  INFO 13839 --- [    Test worker] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2025-05-10T11:31:19.431+09:00  INFO 13839 --- [    Test worker] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection com.mysql.cj.jdbc.ConnectionImpl@68454ed5
+2025-05-10T11:31:19.432+09:00  INFO 13839 --- [    Test worker] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2025-05-10T11:31:19.448+09:00  WARN 13839 --- [    Test worker] org.hibernate.orm.deprecation            : HHH90000025: MySQLDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2025-05-10T11:31:19.723+09:00  INFO 13839 --- [    Test worker] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2025-05-10T11:31:19.765+09:00  INFO 13839 --- [    Test worker] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2025-05-10T11:31:19.917+09:00 ERROR 13839 --- [    Test worker] i.n.r.d.DnsServerAddressStreamProviders  : Unable to load io.netty.resolver.dns.macos.MacOSDnsServerAddressStreamProvider, fallback to system defaults. This may result in incorrect DNS resolutions on MacOS. Check whether you have a dependency on 'io.netty:netty-resolver-dns-native-macos'. Use DEBUG level to see the full stack: java.lang.UnsatisfiedLinkError: failed to load the required native library
+2025-05-10T11:31:19.963+09:00  INFO 13839 --- [    Test worker] o.s.d.j.r.query.QueryEnhancerFactory     : Hibernate is in classpath; If applicable, HQL parser will be used.
+2025-05-10T11:31:20.341+09:00  WARN 13839 --- [    Test worker] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2025-05-10T11:31:20.451+09:00  INFO 13839 --- [    Test worker] c.e.k.KnittdaServerApplicationTests      : Started KnittdaServerApplicationTests in 1.671 seconds (process running for 2.033)
+]]></system-out>
+  <system-err><![CDATA[WARNING: A Java agent has been loaded dynamically (/Users/jisoolee/.gradle/caches/modules-2/files-2.1/net.bytebuddy/byte-buddy-agent/1.14.12/be4984cb6fd1ef1d11f218a648889dfda44b8a15/byte-buddy-agent-1.14.12.jar)
+WARNING: If a serviceability tool is in use, please run with -XX:+EnableDynamicAgentLoading to hide this warning
+WARNING: If a serviceability tool is not in use, please run with -Djdk.instrument.traceUsage for more information
+WARNING: Dynamic loading of agents will be disallowed by default in a future release
+]]></system-err>
+</testsuite>
