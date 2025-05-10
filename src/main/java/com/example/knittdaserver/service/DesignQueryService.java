@@ -49,7 +49,7 @@ public class DesignQueryService {
         return designRepository.searchAll();
     }
 
-    public List<DesignDto> searchV3(String keyword) {
+    public List<DesignDto> search(String keyword) {
         String[] keywords = keyword.trim().split("\\s+");
         if (keywords.length == 0) {
             return designRepository.searchAll();
