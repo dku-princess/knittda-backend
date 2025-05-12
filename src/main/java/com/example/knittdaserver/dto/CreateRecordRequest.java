@@ -4,6 +4,7 @@ import com.example.knittdaserver.entity.ProjectStatus;
 import com.example.knittdaserver.entity.RecordStatus;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -12,6 +13,7 @@ import java.util.List;
 
 @Getter
 @Setter
+@Builder
 public class CreateRecordRequest {
 
     @NotNull(message = "프로젝트 ID는 필수입니다.")
