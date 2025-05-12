@@ -23,6 +23,7 @@ public class ProjectService {
     private final ProjectRepository projectRepository;
     private final DesignRepository designRepository;
     private final AuthService authService;
+    private final RecordService recordService;
     /**
      * 프로젝트 생성
      */
@@ -100,6 +101,7 @@ public class ProjectService {
 
         validateOwnership(project, user);
 
+        recordService.deleteRecordsByProjectId(token, projectId);
         projectRepository.delete(project);
     }
 

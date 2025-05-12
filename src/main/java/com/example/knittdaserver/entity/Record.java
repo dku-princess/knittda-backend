@@ -1,10 +1,8 @@
 package com.example.knittdaserver.entity;
 
+import com.example.knittdaserver.dto.UpdateRecordRequest;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
@@ -15,6 +13,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@ToString
 public class Record {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -37,4 +36,22 @@ public class Record {
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
+
+    public void updateFromRequest(UpdateRecordRequest request) {
+        if (request.getProject() != null) {
+            this.project = request.getProject();
+        }
+
+        if (request.getRecordStatus() != null) {
+            this.recordStatus = request.getRecordStatus();
+        }
+
+        if (request.getTags() != null) {
+            this.tags = request.getTags();
+        }
+
+        if (request.getComment() != null) {
+            this.comment = request.getComment();
+        }
+    }
 }
