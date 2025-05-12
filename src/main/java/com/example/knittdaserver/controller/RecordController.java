@@ -4,8 +4,6 @@ import com.example.knittdaserver.common.response.ApiResponse;
 import com.example.knittdaserver.dto.CreateRecordRequest;
 import com.example.knittdaserver.dto.RecordResponse;
 import com.example.knittdaserver.dto.UpdateRecordRequest;
-import com.example.knittdaserver.entity.Record;
-import com.example.knittdaserver.service.ProjectService;
 import com.example.knittdaserver.service.RecordService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
