@@ -1,5 +1,7 @@
 package com.example.knittdaserver.dto;
 
+import com.example.knittdaserver.entity.Image;
+import com.example.knittdaserver.entity.ImageDto;
 import com.example.knittdaserver.entity.Project;
 import com.example.knittdaserver.entity.ProjectStatus;
 import lombok.AllArgsConstructor;
@@ -9,6 +11,7 @@ import lombok.ToString;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Getter
 @AllArgsConstructor
@@ -27,6 +30,7 @@ public class ProjectDto {
     private LocalDate startDate;
     private LocalDate endDate;
     private LocalDate goalDate;
+    private ImageDto image;
 
     public static ProjectDto from(Project project) {
         return ProjectDto.builder()
@@ -42,6 +46,7 @@ public class ProjectDto {
                 .startDate(project.getStartDate())
                 .endDate(project.getEndDate())
                 .goalDate(project.getGoalDate())
+                .image(ImageDto.from(project.getImage()))
                 .build();
     }
 

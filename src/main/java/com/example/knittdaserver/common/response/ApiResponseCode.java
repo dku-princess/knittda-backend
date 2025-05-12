@@ -22,7 +22,12 @@ public enum ApiResponseCode {
     // 프로젝트 관련
     PROJECT_NOT_FOUND("P404", "프로젝트를 찾을 수 없습니다", HttpStatus.NOT_FOUND),
 
+    // 기록 관련
+    RECORD_NOT_FOUND("R404", "기록을 찾을 수 없습니다", HttpStatus.NOT_FOUND),
+
+    // 도안 관련
     DESIGN_NOT_FOUND("D404", "도안을 찾을 수 없습니다", HttpStatus.NOT_FOUND),
+
     // 입력 관련
     INVALID_INPUT("C001", "입력값이 올바르지 않습니다", HttpStatus.BAD_REQUEST),
 
