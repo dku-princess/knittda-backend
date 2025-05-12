@@ -7,6 +7,8 @@ import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Builder
@@ -57,6 +59,11 @@ public class Project {
     @Column(name = "goal_date")
     private LocalDate goalDate;
 
+    @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Record> records = new ArrayList<>();
+
+    @OneToOne(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Image image;
     public boolean isOwnedBy(Long userId) {
         return this.user.getId().equals(userId);
     }
@@ -95,4 +102,10 @@ public class Project {
         }
     }
 
+    public void setImage(Image image) {
+        this.image = image;
+        if(image != null) {
+            image.setProject(this);
+        }
+    }
 }

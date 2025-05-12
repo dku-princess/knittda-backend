@@ -5,15 +5,14 @@ import com.example.knittdaserver.common.response.CustomException;
 import com.example.knittdaserver.dto.CreateProjectRequest;
 import com.example.knittdaserver.dto.ProjectDto;
 import com.example.knittdaserver.dto.UpdateProjectRequest;
-import com.example.knittdaserver.entity.Design;
-import com.example.knittdaserver.entity.Project;
-import com.example.knittdaserver.entity.ProjectStatus;
-import com.example.knittdaserver.entity.User;
+import com.example.knittdaserver.entity.*;
 import com.example.knittdaserver.repository.DesignRepository;
 import com.example.knittdaserver.repository.ProjectRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -23,16 +22,21 @@ public class ProjectService {
     private final ProjectRepository projectRepository;
     private final DesignRepository designRepository;
     private final AuthService authService;
+    private final RecordService recordService;
+    private final S3Service s3Service;
+
     /**
      * 프로젝트 생성
      */
-    public ProjectDto createProject(String token, CreateProjectRequest request) {
+    public ProjectDto createProject(String token, CreateProjectRequest request, MultipartFile file) {
 
         User user = authService.getUserFromJwt(token);
 
 
         Design design = designRepository.findById(request.getDesignId())
                 .orElseThrow(() -> new CustomException(ApiResponseCode.DESIGN_NOT_FOUND));
+
+        String imageUrl = s3Service.uploadFile(file);
 
         Project project = Project.builder()
                 .design(design)
@@ -45,6 +49,12 @@ public class ProjectService {
                 .goalDate(request.getGoalDate())
                 .status(ProjectStatus.IN_PROGRESS)
                 .build();
+
+        Image image = Image.builder()
+                .imageUrl(imageUrl)
+                .build();
+
+        project.setImage(image);
 
         return ProjectDto.from(projectRepository.save(project));
     }
@@ -100,6 +110,7 @@ public class ProjectService {
 
         validateOwnership(project, user);
 
+        recordService.deleteRecordsByProjectId(token, projectId);
         projectRepository.delete(project);
     }
 
