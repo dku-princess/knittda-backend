@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import io.swagger.v3.oas.annotations.Operation;
+import org.springframework.web.multipart.MultipartFile;
 
 @Tag(name = "Project", description = "프로젝트 관련 API")
 @Slf4j
@@ -28,8 +29,10 @@ public class ProjectController {
     @PostMapping("/")
     public ResponseEntity<ApiResponse<ProjectDto>> createProject(
             @RequestHeader(name = "Authorization") String token,
-            @RequestBody @Valid CreateProjectRequest request) {
-        ProjectDto project = projectService.createProject(token, request);
+            @RequestPart("project") @Valid CreateProjectRequest request,
+            @RequestPart("file") MultipartFile file
+    ) {
+        ProjectDto project = projectService.createProject(token, request, file);
         return ResponseEntity.ok(ApiResponse.success(project));
     }
 
