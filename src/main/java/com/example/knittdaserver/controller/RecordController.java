@@ -7,11 +7,13 @@ import com.example.knittdaserver.dto.UpdateRecordRequest;
 import com.example.knittdaserver.service.RecordService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.persistence.PreUpdate;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -27,9 +29,10 @@ public class RecordController {
     @Operation(summary = "새로운 Record 생성", description = "새로운 Record를 생성합니다.")
     public ResponseEntity<ApiResponse<RecordResponse>> createRecord(
             @RequestHeader(name = "Authorization") String token,
-            @Valid @RequestBody CreateRecordRequest request
+            @Valid @RequestPart("record") CreateRecordRequest request,
+            @RequestPart(value = "files", required = false) List<MultipartFile> files
     )  {
-        RecordResponse record = recordService.createRecord(token, request);
+        RecordResponse record = recordService.createRecord(token, request, files);
         return ResponseEntity.ok(ApiResponse.success(record));
     }
 
@@ -43,7 +46,7 @@ public class RecordController {
     }
 
     @Operation(summary = "프로젝트별 Record 조회", description = "프로젝트 ID를 기반으로 Record를 조회합니다.")
-    @GetMapping("/{projectId}")
+    @GetMapping("/projects/{projectId}")
     public ResponseEntity<ApiResponse<List<RecordResponse>>> getRecordsByProjectId(
             @RequestHeader(name = "Authorization") String token,
             @PathVariable Long projectId
@@ -66,9 +69,11 @@ public class RecordController {
     @PutMapping("/")
     public ResponseEntity<ApiResponse<RecordResponse>> updateRecord(
             @RequestHeader(name = "Authorization") String token,
-            @Valid @RequestBody UpdateRecordRequest request
+            @Valid @RequestPart("record") UpdateRecordRequest request,
+            @RequestPart(value = "deleteImageIds", required = false) List<Long> deleteImageIds,
+            @RequestPart(value = "files", required = false) List<MultipartFile> files
     ){
-        RecordResponse response = recordService.updateRecord(token, request);
+        RecordResponse response = recordService.updateRecord(token, request, deleteImageIds, files);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 

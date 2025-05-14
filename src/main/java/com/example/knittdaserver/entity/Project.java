@@ -59,6 +59,7 @@ public class Project {
     @Column(name = "goal_date")
     private LocalDate goalDate;
 
+    @Builder.Default
     @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Record> records = new ArrayList<>();
 

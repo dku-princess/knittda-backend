@@ -39,8 +39,14 @@ public class Record {
     private LocalDateTime createdAt;
 
 
+    @Builder.Default
     @OneToMany(mappedBy = "record", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Image> images = new ArrayList<>();
+
+    public void addImage(Image image) {
+        this.images.add(image);
+    }
+
     public void updateFromRequest(UpdateRecordRequest request) {
         if (request.getProject() != null) {
             this.project = request.getProject();
