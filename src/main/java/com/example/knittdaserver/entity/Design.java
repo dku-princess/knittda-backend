@@ -55,4 +55,6 @@ public class Design {
     @Size(max = 50)
     private String pages;
 
+    @Builder.Default
+    private boolean visible = false;
 }

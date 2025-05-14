@@ -9,11 +9,13 @@ import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.core.types.dsl.NumberExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Repository;
 
 import java.util.List;
 
 @RequiredArgsConstructor
-public class DesignRepositoryImpl implements DesignRepositoryCustom{
+@Repository
+public class DesignRepositoryImpl implements DesignRepositoryCustom {
 
     private final JPAQueryFactory queryFactory;
 
@@ -28,17 +30,11 @@ public class DesignRepositoryImpl implements DesignRepositoryCustom{
                     .or(design.designer.contains(keyword));
         }
 
-        // CASE WHEN으로 매칭된 키워드 수 계산
         NumberExpression<Integer> score = Expressions.numberTemplate(Integer.class, "0");
         for (String keyword : keywords) {
             score = score.add(
                     caseBuilder
-                            .when(design.title.contains(keyword))
-                            .then(1)
-                            .otherwise(0)
-            ).add(
-                    caseBuilder
-                            .when(design.designer.contains(keyword))
+                            .when(design.title.contains(keyword).or(design.designer.contains(keyword)))
                             .then(1)
                             .otherwise(0)
             );
@@ -48,10 +44,20 @@ public class DesignRepositoryImpl implements DesignRepositoryCustom{
                 .select(
                         Projections.constructor(
                                 DesignDto.class,
+                                design.id,
                                 design.title,
                                 design.designer,
+                                design.price,
+                                design.imageUrl,
+                                design.detailUrl,
+                                design.categories,
+                                design.tools,
+                                design.sizes,
+                                design.gauge,
                                 design.needles,
-                                design.yarnInfo)
+                                design.yarnInfo,
+                                design.pages
+                        )
                 )
                 .distinct()
                 .from(design)
@@ -59,4 +65,5 @@ public class DesignRepositoryImpl implements DesignRepositoryCustom{
                 .orderBy(score.desc())
                 .fetch();
     }
+
 }

@@ -1,5 +1,7 @@
 package com.example.knittdaserver.dto;
 
+import com.example.knittdaserver.entity.Image;
+import com.example.knittdaserver.entity.ImageDto;
 import com.example.knittdaserver.entity.Record;
 import com.example.knittdaserver.entity.RecordStatus;
 import lombok.Builder;
@@ -9,6 +11,7 @@ import lombok.ToString;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Getter
 @Setter
@@ -21,6 +24,7 @@ public class RecordResponse {
     private List<String> tags;
     private String comment;
     private LocalDateTime createdAt;
+    private List<ImageDto> images;
 
     public static RecordResponse from(Record record) {
         return RecordResponse.builder()
@@ -30,6 +34,11 @@ public class RecordResponse {
                 .tags(record.getTags())
                 .comment(record.getComment())
                 .createdAt(record.getCreatedAt())
+                .images(
+                        record.getImages().stream()
+                                .map(ImageDto::from)
+                                .collect(Collectors.toList())
+                )
                 .build();
     }
 }

@@ -6,6 +6,7 @@ import com.example.knittdaserver.dto.ProjectDto;
 import com.example.knittdaserver.dto.UpdateProjectRequest;
 import com.example.knittdaserver.service.ProjectService;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.annotation.Nullable;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -58,8 +59,10 @@ public class ProjectController {
     @PutMapping("/")
     public ResponseEntity<ApiResponse<ProjectDto>> updateProject(
             @RequestHeader(name = "Authorization") String token,
-            @RequestBody @Valid UpdateProjectRequest request) {
-        ProjectDto updatedProject = projectService.updateProject(token, request);
+            @RequestPart("project") @Valid UpdateProjectRequest request,
+            @RequestPart(value = "file", required = false) MultipartFile file
+    ) {
+        ProjectDto updatedProject = projectService.updateProject(token, request, file);
         return ResponseEntity.ok(ApiResponse.success(updatedProject));
     }
 

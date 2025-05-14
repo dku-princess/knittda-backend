@@ -27,10 +27,18 @@ public class Image {
     @Column(name = "image_url", nullable = false, length = 1024)
     private String imageUrl;
 
-    @Builder.Default
     @Column(name = "image_order", nullable = true)
     private Long imageOrder = 1L;
 
+    public void setProject(Project project) {
+        this.project = project;
+        this.record = null;
+    }
+
+    public void setRecord(Record record) {
+        this.record = record;
+        this.project = null;
+    }
     public boolean isProjectImage() {
         return project != null && record == null;
     }

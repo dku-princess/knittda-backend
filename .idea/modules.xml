@@ -3,7 +3,6 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/knittda-server.main.iml" filepath="$PROJECT_DIR$/.idea/modules/knittda-server.main.iml" />
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/knittda-server.test.iml" filepath="$PROJECT_DIR$/.idea/modules/knittda-server.test.iml" />
     </modules>
   </component>
 </project>
