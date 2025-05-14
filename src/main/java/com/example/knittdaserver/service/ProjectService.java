@@ -52,6 +52,7 @@ public class ProjectService {
 
         Image image = Image.builder()
                 .imageUrl(imageUrl)
+                .imageOrder(1L)
                 .build();
 
         project.setImage(image);
@@ -87,12 +88,35 @@ public class ProjectService {
     /**
      * 프로젝트 수정
      */
-    public ProjectDto updateProject(String token, UpdateProjectRequest request) {
+    public ProjectDto updateProject(String token, UpdateProjectRequest request, MultipartFile file) {
         User user = authService.getUserFromJwt(token);
         Project project = projectRepository.findById(request.getProjectId())
                 .orElseThrow(() -> new CustomException(ApiResponseCode.PROJECT_NOT_FOUND));
 
         validateOwnership(project, user);
+
+        if (file != null) {
+            //기존 이미지 파일
+            Image existingImage = project.getImage();
+
+            if (existingImage != null) {
+                s3Service.deleteFile(existingImage.getImageUrl());
+
+                // 새로운 이미지 파일 업로드
+                String imageUrl = s3Service.uploadFile(file);
+                existingImage.setImageUrl(imageUrl);
+            } else {
+                String imageUrl = s3Service.uploadFile(file);
+
+                Image image = Image.builder()
+                        .imageUrl(imageUrl)
+                        .project(project)
+                        .imageOrder(1L)
+                        .build();
+                project.setImage(image);
+            }
+
+        }
 
         project.updateFromRequest(request);
         projectRepository.save(project);
@@ -110,7 +134,7 @@ public class ProjectService {
 
         validateOwnership(project, user);
 
-        recordService.deleteRecordsByProjectId(token, projectId);
+//        recordService.deleteRecordsByProjectId(token, projectId);
         projectRepository.delete(project);
     }
 
