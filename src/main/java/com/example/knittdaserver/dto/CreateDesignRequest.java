@@ -24,6 +24,7 @@ public class CreateDesignRequest {
     private String needles;
     private String yarnInfo;
     private String pages;
+    private boolean visible;
 
     public Design to(){
         return Design.builder()
@@ -39,7 +40,7 @@ public class CreateDesignRequest {
                 .needles(needles)
                 .yarnInfo(yarnInfo)
                 .pages(pages)
-                .visible(false)
+                .visible(visible)
                 .build();
         }
 }
