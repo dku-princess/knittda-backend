@@ -2,21 +2,20 @@ package com.example.knittdaserver.service;
 
 import com.example.knittdaserver.common.response.ApiResponseCode;
 import com.example.knittdaserver.common.response.CustomException;
-import com.example.knittdaserver.dto.CreateProjectRequest;
-import com.example.knittdaserver.dto.ProjectDto;
-import com.example.knittdaserver.dto.UpdateProjectRequest;
+import com.example.knittdaserver.dto.*;
 import com.example.knittdaserver.entity.*;
 import com.example.knittdaserver.repository.DesignRepository;
 import com.example.knittdaserver.repository.ProjectRepository;
+import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @Service
-@RequiredArgsConstructor
+@AllArgsConstructor
 public class ProjectService {
 
     private final ProjectRepository projectRepository;
@@ -24,22 +23,15 @@ public class ProjectService {
     private final AuthService authService;
     private final RecordService recordService;
     private final S3Service s3Service;
+    private final DesignService designService;
 
     /**
      * 프로젝트 생성
      */
     public ProjectDto createProject(String token, CreateProjectRequest request, MultipartFile file) {
-
         User user = authService.getUserFromJwt(token);
 
-
-        Design design = designRepository.findById(request.getDesignId())
-                .orElseThrow(() -> new CustomException(ApiResponseCode.DESIGN_NOT_FOUND));
-
-        String imageUrl = s3Service.uploadFile(file);
-
         Project project = Project.builder()
-                .design(design)
                 .user(user)
                 .nickname(request.getNickname())
                 .customNeedleInfo(request.getCustomNeedleInfo())
@@ -50,12 +42,37 @@ public class ProjectService {
                 .status(ProjectStatus.IN_PROGRESS)
                 .build();
 
-        Image image = Image.builder()
-                .imageUrl(imageUrl)
-                .imageOrder(1L)
-                .build();
 
-        project.setImage(image);
+        if (request.getDesignId() != null) {
+            Design design = designRepository.findById(request.getDesignId())
+                    .orElseThrow(() -> new CustomException(ApiResponseCode.DESIGN_NOT_FOUND));
+
+            project.setDesign(design);
+
+        }
+        else if (request.getDesignInfo() != null) {
+            CreateDesignRequest designRequest = CreateDesignRequest.builder()
+                    .title(request.getDesignInfo().getTitle())
+                    .designer(request.getDesignInfo().getDesigner())
+                    .build();
+            DesignDto designDto = designService.createDesign(designRequest);
+            Design design = designRepository.findById(designDto.getId())
+                    .orElseThrow(() -> new CustomException(ApiResponseCode.DESIGN_NOT_FOUND));
+
+            project.setDesign(design);
+        } else {
+            throw new CustomException(ApiResponseCode.INVALID_DESIGN_INFO);
+        }
+
+        if (file != null) {
+            String imageUrl = s3Service.uploadFile(file);
+            Image image = Image.builder()
+                    .imageUrl(imageUrl)
+                    .imageOrder(1L)
+                    .build();
+
+            project.setImage(image);
+        }
 
         return ProjectDto.from(projectRepository.save(project));
     }
