@@ -3,7 +3,11 @@
 ### npm or yarn (프론트 대비) ###
 node_modules/
 mysql-data/*
-build/*
+build/
+
+.gradle/
+!gradle-wrapper.jar
+
 
 */application-private.properties
 src/main/resources/application-private.properties
