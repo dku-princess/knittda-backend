@@ -27,6 +27,8 @@ public enum ApiResponseCode {
 
     // 도안 관련
     DESIGN_NOT_FOUND("D404", "도안을 찾을 수 없습니다", HttpStatus.NOT_FOUND),
+    INVALID_DESIGN_INFO("D400","유효하지 않은 도안 정보입니다.",HttpStatus.BAD_REQUEST),
+
 
     // 입력 관련
     INVALID_INPUT("C001", "입력값이 올바르지 않습니다", HttpStatus.BAD_REQUEST),

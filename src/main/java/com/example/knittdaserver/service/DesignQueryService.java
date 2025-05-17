@@ -11,6 +11,7 @@ import org.springframework.util.StringUtils;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -18,14 +19,14 @@ import java.util.List;
 public class DesignQueryService {
 
     private final DesignRepository designRepository;
-    private final JPAQueryFactory queryFactory;
 
     public List<DesignDto> search(String keyword) {
-        if (keyword == null || keyword.isEmpty()) {
-            return designRepository.searchAll();
+        if (StringUtils.hasText(keyword)) {
+            String[] keywords = keyword.trim().split("\\s+");
+            return designRepository.searchByKeyword(List.of(keywords));
         }
-        String[] keywords = keyword.trim().split("\\s+");
 
-        return designRepository.searchByKeyword(List.of(keywords));
+        // 키워드가 없을 경우 visible이 true인 도안만 조회
+        return designRepository.searchByKeyword(List.of(""));
     }
 }
