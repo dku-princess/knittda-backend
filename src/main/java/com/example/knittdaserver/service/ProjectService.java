@@ -25,13 +25,19 @@ public class ProjectService {
     private final S3Service s3Service;
     private final DesignService designService;
 
+    private final RecordService recordService;
     /**
      * 프로젝트 생성
      */
     public ProjectDto createProject(String token, CreateProjectRequest request, MultipartFile file) {
         User user = authService.getUserFromJwt(token);
 
+
+        Design design = designRepository.findById(request.getDesignId())
+                .orElseThrow(() -> new CustomException(ApiResponseCode.DESIGN_NOT_FOUND));
+
         Project project = Project.builder()
+                .design(design)
                 .user(user)
                 .nickname(request.getNickname())
                 .customNeedleInfo(request.getCustomNeedleInfo())
@@ -151,7 +157,6 @@ public class ProjectService {
 
         validateOwnership(project, user);
 
-//        recordService.deleteRecordsByProjectId(token, projectId);
         projectRepository.delete(project);
     }
 
