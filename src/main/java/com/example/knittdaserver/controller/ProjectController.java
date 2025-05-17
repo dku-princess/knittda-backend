@@ -30,8 +30,8 @@ public class ProjectController {
     @PostMapping("/")
     public ResponseEntity<ApiResponse<ProjectDto>> createProject(
             @RequestHeader(name = "Authorization") String token,
-            @RequestPart("project") @Valid CreateProjectRequest request,
-            @RequestPart("file") MultipartFile file
+            @RequestPart(value = "project") @Valid CreateProjectRequest request,
+            @RequestPart(value = "file", required = false) MultipartFile file
     ) {
         ProjectDto project = projectService.createProject(token, request, file);
         return ResponseEntity.ok(ApiResponse.success(project));
