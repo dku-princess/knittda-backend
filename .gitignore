@@ -9,3 +9,4 @@ build/*
 src/main/resources/application-private.properties
 .gitignore
 mysql-data/
+src/test/*

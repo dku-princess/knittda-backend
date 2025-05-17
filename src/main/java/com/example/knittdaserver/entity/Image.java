@@ -28,7 +28,7 @@ public class Image {
     private String imageUrl;
 
     @Column(name = "image_order", nullable = true)
-    private Long imageOrder = 1L;
+    private Long imageOrder;
 
     public void setProject(Project project) {
         this.project = project;

@@ -109,4 +109,8 @@ public class Project {
             image.setProject(this);
         }
     }
+
+    public void setDesign(Design design) {
+        this.design = design;
+    }
 }
