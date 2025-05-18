@@ -10,7 +10,7 @@ services:
     ports:
       - "3306:3306"
     volumes:
-      - /Users/jisoolee/Documents/mysql-data:/var/lib/mysql
+      - ./mysql-data:/var/lib/mysql
     restart: always
 
   app:

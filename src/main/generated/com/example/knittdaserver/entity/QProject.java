@@ -38,8 +38,6 @@ public class QProject extends EntityPathBase<Project> {
 
     public final QImage image;
 
-    public final DateTimePath<java.time.LocalDateTime> lastRecordAt = createDateTime("lastRecordAt", java.time.LocalDateTime.class);
-
     public final StringPath nickname = createString("nickname");
 
     public final ListPath<Record, QRecord> records = this.<Record, QRecord>createList("records", Record.class, QRecord.class, PathInits.DIRECT2);
