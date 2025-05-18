@@ -25,19 +25,32 @@ public class ProjectService {
     private final S3Service s3Service;
     private final DesignService designService;
 
-    private final RecordService recordService;
     /**
      * 프로젝트 생성
      */
     public ProjectDto createProject(String token, CreateProjectRequest request, MultipartFile file) {
         User user = authService.getUserFromJwt(token);
+        Design design;
+        // 필수 필드 검증
+        if (request.getNickname() == null || request.getNickname().isBlank()) {
+            throw new CustomException(ApiResponseCode.INVALID_INPUT);
+        }
 
 
-        Design design = designRepository.findById(request.getDesignId())
-                .orElseThrow(() -> new CustomException(ApiResponseCode.DESIGN_NOT_FOUND));
+        if (request.getDesignId() != null) {
+            design = designRepository.findById(request.getDesignId())
+                    .orElseThrow(() -> new CustomException(ApiResponseCode.DESIGN_NOT_FOUND));
+
+        }else {
+            design = Design.builder()
+                    .title(request.getTitle())
+                    .designer(request.getDesigner())
+                    .visible(request.isVisible())
+                    .build();
+            designRepository.save(design);
+        }
 
         Project project = Project.builder()
-                .design(design)
                 .user(user)
                 .nickname(request.getNickname())
                 .customNeedleInfo(request.getCustomNeedleInfo())
@@ -46,29 +59,8 @@ public class ProjectService {
                 .endDate(request.getEndDate())
                 .goalDate(request.getGoalDate())
                 .status(ProjectStatus.IN_PROGRESS)
+                .design(design)
                 .build();
-
-
-        if (request.getDesignId() != null) {
-            Design design = designRepository.findById(request.getDesignId())
-                    .orElseThrow(() -> new CustomException(ApiResponseCode.DESIGN_NOT_FOUND));
-
-            project.setDesign(design);
-
-        }
-        else if (request.getDesignInfo() != null) {
-            CreateDesignRequest designRequest = CreateDesignRequest.builder()
-                    .title(request.getDesignInfo().getTitle())
-                    .designer(request.getDesignInfo().getDesigner())
-                    .build();
-            DesignDto designDto = designService.createDesign(designRequest);
-            Design design = designRepository.findById(designDto.getId())
-                    .orElseThrow(() -> new CustomException(ApiResponseCode.DESIGN_NOT_FOUND));
-
-            project.setDesign(design);
-        } else {
-            throw new CustomException(ApiResponseCode.INVALID_DESIGN_INFO);
-        }
 
         if (file != null) {
             String imageUrl = s3Service.uploadFile(file);
@@ -118,33 +110,71 @@ public class ProjectService {
 
         validateOwnership(project, user);
 
-        if (file != null) {
-            //기존 이미지 파일
-            Image existingImage = project.getImage();
-
-            if (existingImage != null) {
-                s3Service.deleteFile(existingImage.getImageUrl());
-
-                // 새로운 이미지 파일 업로드
-                String imageUrl = s3Service.uploadFile(file);
-                existingImage.setImageUrl(imageUrl);
-            } else {
-                String imageUrl = s3Service.uploadFile(file);
-
-                Image image = Image.builder()
-                        .imageUrl(imageUrl)
-                        .project(project)
-                        .imageOrder(1L)
-                        .build();
-                project.setImage(image);
-            }
-
-        }
+        updateDesign(project, request);
+        updateImage(project, file);
 
         project.updateFromRequest(request);
         projectRepository.save(project);
 
         return ProjectDto.from(project);
+    }
+
+    private void updateDesign(Project project, UpdateProjectRequest request) {
+        if (request.getDesignId() != null) {
+            // 새로운 공식 도안으로 업데이트
+            Design design = designRepository.findById(request.getDesignId())
+                    .orElseThrow(() -> new CustomException(ApiResponseCode.DESIGN_NOT_FOUND));
+            project.setDesign(design);
+        } else {
+            Design originDesign = project.getDesign();
+
+            if (!isSameDesign(originDesign, request)) {
+                // 새로운 개인 도안으로 업데이트
+                CreateDesignRequest createDesignRequest = CreateDesignRequest.builder()
+                        .title(request.getTitle())
+                        .designer(request.getDesigner())
+                        .visible(false)
+                        .build();
+
+                DesignDto designDto = designService.createDesign(createDesignRequest);
+                Design design = designRepository.findById(designDto.getId())
+                        .orElseThrow(() -> new CustomException(ApiResponseCode.DESIGN_NOT_FOUND));
+                project.setDesign(design);
+            }
+        }
+    }
+
+    private boolean isSameDesign(Design originDesign, UpdateProjectRequest request) {
+        if (originDesign == null) {
+            return false;
+        }
+
+        String originTitle = originDesign.getTitle();
+        String originDesigner = originDesign.getDesigner();
+        String requestTitle = request.getTitle();
+        String requestDesigner = request.getDesigner();
+
+        return (originTitle != null && originTitle.equals(requestTitle)) &&
+                (originDesigner != null && originDesigner.equals(requestDesigner));
+    }
+
+    private void updateImage(Project project, MultipartFile file) {
+        if (file == null) return;
+
+        Image existingImage = project.getImage();
+        String imageUrl = s3Service.uploadFile(file);
+
+        if (existingImage != null) {
+            s3Service.deleteFile(existingImage.getImageUrl());
+            existingImage.setImageUrl(imageUrl);
+        } else {
+            Image image = Image.builder()
+                    .imageUrl(imageUrl)
+                    .project(project)
+                    .imageOrder(1L)
+                    .build();
+            project.setImage(image);
+        }
     }
 
     /**

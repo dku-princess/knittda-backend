@@ -2,9 +2,7 @@
 <project version="4">
   <component name="SshConfigs">
     <configs>
-      <sshConfig authType="PASSWORD" connectionConfig="{&quot;serverAliveInterval&quot;:300}" id="ce106766-6ac4-4e1e-b9f8-8a3dece5d8f3" customName="ec2-knittda" nameFormat="CUSTOM" useOpenSSHConfig="true">
-        <option name="customName" value="ec2-knittda" />
-      </sshConfig>
+      <sshConfig host="13.125.122.193" id="bd6adcbd-6a14-43a9-9f54-1ba9a18128f7" keyPath="$PROJECT_DIR$/../../Documents/knittda-server-250508.pem" port="22" nameFormat="DESCRIPTIVE" username="ubuntu" useOpenSSHConfig="false" />
     </configs>
   </component>
 </project>

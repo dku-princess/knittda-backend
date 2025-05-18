@@ -3,8 +3,11 @@ package com.example.knittdaserver.controller;
 import com.example.knittdaserver.common.response.ApiResponse;
 import com.example.knittdaserver.dto.CreateRecordRequest;
 import com.example.knittdaserver.dto.RecordResponse;
+import com.example.knittdaserver.dto.UpdateProjectRequest;
 import com.example.knittdaserver.dto.UpdateRecordRequest;
 import com.example.knittdaserver.service.RecordService;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.persistence.PreUpdate;
@@ -25,13 +28,22 @@ import java.util.List;
 public class RecordController {
     private final RecordService recordService;
 
-    @PostMapping("/")
+    @PostMapping(value = "/", consumes = {"multipart/form-data"})
     @Operation(summary = "새로운 Record 생성", description = "새로운 Record를 생성합니다.")
     public ResponseEntity<ApiResponse<RecordResponse>> createRecord(
             @RequestHeader(name = "Authorization") String token,
-            @Valid @RequestPart("record") CreateRecordRequest request,
+            @Valid @RequestPart(value = "record") String recordJson,
             @RequestPart(value = "files", required = false) List<MultipartFile> files
     )  {
+
+        ObjectMapper objectMapper = new ObjectMapper();
+        CreateRecordRequest request;
+        try {
+            request = objectMapper.readValue(recordJson, CreateRecordRequest.class);
+        } catch (JsonProcessingException e) {
+            throw new IllegalArgumentException("Invalid JSON format for 'record'", e);
+        }
+
         RecordResponse record = recordService.createRecord(token, request, files);
         return ResponseEntity.ok(ApiResponse.success(record));
     }
@@ -66,13 +78,24 @@ public class RecordController {
     }
 
     @Operation(summary = "Record 업데이트", description = "Record 정보를 업데이트합니다.")
-    @PutMapping("/")
+    @PutMapping(value = "/", consumes = {"multipart/form-data"})
     public ResponseEntity<ApiResponse<RecordResponse>> updateRecord(
             @RequestHeader(name = "Authorization") String token,
-            @Valid @RequestPart("record") UpdateRecordRequest request,
+            @Valid @RequestPart("record") String updateRecordJson,
+
             @RequestPart(value = "deleteImageIds", required = false) List<Long> deleteImageIds,
+
             @RequestPart(value = "files", required = false) List<MultipartFile> files
     ){
+        ObjectMapper objectMapper = new ObjectMapper();
+        UpdateRecordRequest request;
+
+        try{
+            request = objectMapper.readValue(updateRecordJson, UpdateRecordRequest.class);
+        }catch (JsonProcessingException e) {
+            throw new IllegalArgumentException("Invalid JSON format for 'record'", e);
+        }
+
         RecordResponse response = recordService.updateRecord(token, request, deleteImageIds, files);
         return ResponseEntity.ok(ApiResponse.success(response));
     }

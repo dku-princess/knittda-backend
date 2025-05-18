@@ -1,4 +1,5 @@
-
+.idea/
+.gradle/
 
 ### npm or yarn (프론트 대비) ###
 node_modules/

@@ -29,7 +29,7 @@ public class RecordService {
 
 
     public RecordResponse createRecord(String token, CreateRecordRequest request, List<MultipartFile> files) {
-        authService.getUserFromJwt(token);
+        User user = authService.getUserFromJwt(token);
         Project project = projectRepository.findById(request.getProjectId())
                 .orElseThrow(() -> new CustomException(ApiResponseCode.PROJECT_NOT_FOUND));
         Record record = Record.builder()
