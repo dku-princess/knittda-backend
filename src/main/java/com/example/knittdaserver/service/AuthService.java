@@ -54,7 +54,6 @@ public class AuthService {
 
     public UserDto getUserInfo(String kakaoAccessToken) {
 
-        log.info("Kakao access token: {}", kakaoAccessToken);
         var headers = new HttpHeaders();
         headers.setBearerAuth(kakaoAccessToken);
 
@@ -67,7 +66,6 @@ public class AuthService {
                     .bodyToMono(KakaoUserResponse.class)
                     .block();
 
-            log.info(kakaoUserResponse.toString());
 
             if (kakaoUserResponse == null) {
                 throw new CustomException(ApiResponseCode.USER_NOT_FOUND);

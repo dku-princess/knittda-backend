@@ -5,13 +5,14 @@ import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Builder
 @Data
 @AllArgsConstructor
+@NoArgsConstructor
 public class CreateDesignRequest {
 
-    @NotBlank(message = "도안 제목은 필수입니다.")
     private String title;
     private String designer;
     private String price;
@@ -24,7 +25,8 @@ public class CreateDesignRequest {
     private String needles;
     private String yarnInfo;
     private String pages;
-    private boolean visible;
+    @Builder.Default
+    private boolean visible = false;
 
     public Design to(){
         return Design.builder()

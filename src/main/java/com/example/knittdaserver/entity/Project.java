@@ -1,6 +1,7 @@
 package com.example.knittdaserver.entity;
 
 import com.example.knittdaserver.dto.UpdateProjectRequest;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -44,19 +45,19 @@ public class Project {
     @Column(name = "custom_needle_info", columnDefinition = "TEXT")
     private String customNeedleInfo;
 
-    @Column(name = "last_record_at")
-    private LocalDateTime lastRecordAt;
-
     @CreationTimestamp
     private LocalDateTime createdAt;
 
     @Column(name = "start_date")
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
     private LocalDate startDate;
 
     @Column(name = "end_date")
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
     private LocalDate endDate;
 
     @Column(name = "goal_date")
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
     private LocalDate goalDate;
 
     @Builder.Default
@@ -84,10 +85,6 @@ public class Project {
 
         if (request.getCustomNeedleInfo() != null) {
             this.customNeedleInfo = request.getCustomNeedleInfo();
-        }
-
-        if (request.getLastRecordAt() != null) {
-            this.lastRecordAt = request.getLastRecordAt();
         }
 
         if (request.getStartDate() != null) {
