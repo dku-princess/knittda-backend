@@ -15,8 +15,7 @@ public class UpdateRecordRequest {
 
     @NotNull(message = "기록 ID는 필수입니다.")
     private Long recordId;
-    private Project project;
-    private RecordStatus recordStatus;
+    private String recordStatus;
     private List<String> tags;
     private String comment;
 }

@@ -7,6 +7,7 @@ import com.example.knittdaserver.dto.UpdateProjectRequest;
 import com.example.knittdaserver.dto.UpdateRecordRequest;
 import com.example.knittdaserver.service.RecordService;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -14,10 +15,12 @@ import jakarta.persistence.PreUpdate;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Slf4j
@@ -28,18 +31,20 @@ import java.util.List;
 public class RecordController {
     private final RecordService recordService;
 
+    @Autowired
+    private final ObjectMapper objectMapper;
+
     @PostMapping(value = "/", consumes = {"multipart/form-data"})
     @Operation(summary = "새로운 Record 생성", description = "새로운 Record를 생성합니다.")
     public ResponseEntity<ApiResponse<RecordResponse>> createRecord(
             @RequestHeader(name = "Authorization") String token,
-            @Valid @RequestPart(value = "record") String recordJson,
+            @RequestPart(value = "record") String recordJson,
             @RequestPart(value = "files", required = false) List<MultipartFile> files
     )  {
-
-        ObjectMapper objectMapper = new ObjectMapper();
         CreateRecordRequest request;
         try {
             request = objectMapper.readValue(recordJson, CreateRecordRequest.class);
+            log.info(objectMapper.writeValueAsString(request));
         } catch (JsonProcessingException e) {
             throw new IllegalArgumentException("Invalid JSON format for 'record'", e);
         }
@@ -81,24 +86,41 @@ public class RecordController {
     @PutMapping(value = "/", consumes = {"multipart/form-data"})
     public ResponseEntity<ApiResponse<RecordResponse>> updateRecord(
             @RequestHeader(name = "Authorization") String token,
-            @Valid @RequestPart("record") String updateRecordJson,
-
-            @RequestPart(value = "deleteImageIds", required = false) List<Long> deleteImageIds,
-
+            @RequestPart(value = "record") String updateRecordJson,
+            @RequestPart(value = "deleteImageIds", required = false) String deleteImageIdsJson,
             @RequestPart(value = "files", required = false) List<MultipartFile> files
     ){
-        ObjectMapper objectMapper = new ObjectMapper();
         UpdateRecordRequest request;
+        List<Long> deleteImageIds = new ArrayList<>();  // 빈 리스트로 초기화
 
-        try{
+        try {
+            // record JSON 파싱
             request = objectMapper.readValue(updateRecordJson, UpdateRecordRequest.class);
-        }catch (JsonProcessingException e) {
+            log.info("Record JSON: {}", objectMapper.writeValueAsString(request));
+
+            // deleteImageIds JSON 파싱
+            if (deleteImageIdsJson != null && !deleteImageIdsJson.isEmpty()) {
+                log.info("Raw deleteImageIdsJson: {}", deleteImageIdsJson);
+
+                try {
+                    deleteImageIds = objectMapper.readValue(
+                            deleteImageIdsJson,
+                            new TypeReference<ArrayList<Long>>() {}
+                    );
+                    log.info("Parsed deleteImageIds: {}", objectMapper.writeValueAsString(deleteImageIds));
+                } catch (JsonProcessingException e) {
+                    log.warn("Invalid JSON format for 'deleteImageIds': {}", deleteImageIdsJson, e);
+                }
+            }
+
+        } catch (JsonProcessingException e) {
             throw new IllegalArgumentException("Invalid JSON format for 'record'", e);
         }
 
         RecordResponse response = recordService.updateRecord(token, request, deleteImageIds, files);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
+
 
     @Operation(summary = "Record 삭제", description = "Record ID를 기반으로 Record를 삭제합니다.")
     @DeleteMapping("/{recordId}")

@@ -5,19 +5,19 @@ import com.example.knittdaserver.common.response.CustomException;
 import com.example.knittdaserver.dto.CreateRecordRequest;
 import com.example.knittdaserver.dto.RecordResponse;
 import com.example.knittdaserver.dto.UpdateRecordRequest;
-import com.example.knittdaserver.entity.Image;
-import com.example.knittdaserver.entity.Project;
+import com.example.knittdaserver.entity.*;
 import com.example.knittdaserver.entity.Record;
-import com.example.knittdaserver.entity.User;
 import com.example.knittdaserver.repository.ImageRepository;
 import com.example.knittdaserver.repository.ProjectRepository;
 import com.example.knittdaserver.repository.RecordRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class RecordService {
@@ -36,7 +36,7 @@ public class RecordService {
                 .tags(request.getTags())
                 .comment(request.getComment())
                 .project(project)
-                .recordStatus(request.getRecordStatus())
+                .recordStatus(RecordStatus.fromString(request.getRecordStatus()))
                 .build();
 
         if (files != null) {
@@ -90,18 +90,17 @@ public class RecordService {
     }
 
 
-    public RecordResponse updateRecord(String token, UpdateRecordRequest request,
-                                       List<Long> deleteImageIds, List<MultipartFile> files) {
+    public RecordResponse updateRecord(
+            String token,
+            UpdateRecordRequest request,
+            List<Long> deleteImageIds,
+            List<MultipartFile> files) {
+
         User user = authService.getUserFromJwt(token);
         Record record = recordRepository.findById(request.getRecordId())
                 .orElseThrow(() -> new CustomException(ApiResponseCode.RECORD_NOT_FOUND));
         // 프로젝트 소유 검증
         if (!record.getProject().isOwnedBy(user.getId())) {
-            throw new CustomException(ApiResponseCode.FORBIDDEN_ACCESS);
-        }
-
-        // 프로젝트를 수정할 경우, 프로젝트 소유 검증
-        if (request.getProject() != null && request.getProject().isOwnedBy(user.getId())){
             throw new CustomException(ApiResponseCode.FORBIDDEN_ACCESS);
         }
 
@@ -116,6 +115,7 @@ public class RecordService {
 
         // 추가할 사진이 있을 경우
         if (files != null) {
+            log.info(files.toString());
             for (int i = 0; i < files.size(); i++) {
                 String imageUrl = s3Service.uploadFile(files.get(i));
                 Image image = Image.builder()

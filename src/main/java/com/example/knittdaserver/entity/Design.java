@@ -39,13 +39,15 @@ public class Design {
     @Size(max = 255)
     private String tools;
 
-    @Lob
+    @Size(max = 255)
     private String sizes;
 
     @Lob
+    @Column(columnDefinition = "TEXT")
     private String gauge;
 
     @Lob
+    @Column(columnDefinition = "TEXT")
     private String needles;
 
     @Lob
@@ -53,6 +55,7 @@ public class Design {
     private String yarnInfo;
 
     @Size(max = 50)
+    @Column(columnDefinition = "TEXT")
     private String pages;
 
     @Builder.Default
