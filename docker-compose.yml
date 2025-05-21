@@ -19,7 +19,7 @@ services:
       dockerfile: Dockerfile
     container_name: knittda-app
     environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://knittda-mysql:3306/knittda-db
+      SPRING_DATASOURCE_URL: jdbc:mysql://knittda-mysql:3306/knittda-db?useUnicode=true&characterEncoding=utf8mb4&serverTimezone=Asia/Seoul
       SPRING_DATASOURCE_USERNAME: user
       SPRING_DATASOURCE_PASSWORD: a123456789!
       SPRING_JPA_HIBERNATE_DDL_AUTO: update

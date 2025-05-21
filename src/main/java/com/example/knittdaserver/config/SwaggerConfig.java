@@ -1,5 +1,7 @@
 package com.example.knittdaserver.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.swagger.v3.core.jackson.ModelResolver;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.info.Contact;
 import io.swagger.v3.oas.models.OpenAPI;
@@ -20,4 +22,5 @@ public class SwaggerConfig {
                                 .name("Knittda Support")
                                 .email("support@knittda.com")));
     }
+
 }
