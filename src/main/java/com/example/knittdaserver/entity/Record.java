@@ -1,6 +1,7 @@
 package com.example.knittdaserver.entity;
 
 import com.example.knittdaserver.dto.UpdateRecordRequest;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -35,6 +36,7 @@ public class Record {
     private String comment;
 
     @CreationTimestamp
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSSSS")
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -48,12 +50,10 @@ public class Record {
     }
 
     public void updateFromRequest(UpdateRecordRequest request) {
-        if (request.getProject() != null) {
-            this.project = request.getProject();
-        }
+
 
         if (request.getRecordStatus() != null) {
-            this.recordStatus = request.getRecordStatus();
+            this.recordStatus = RecordStatus.fromString(request.getRecordStatus());
         }
 
         if (request.getTags() != null) {

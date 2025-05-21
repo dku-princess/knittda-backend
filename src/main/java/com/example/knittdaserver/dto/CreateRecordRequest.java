@@ -25,13 +25,10 @@ public class CreateRecordRequest {
     private Long projectId;
 
     @NotNull(message = "진행도는 필수입니다.")
-    private RecordStatus recordStatus;
+    private String recordStatus;
 
     private List<String> tags;
 
     @NotBlank(message = "기록 내용은 필수입니다.")
     private String comment;
-
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSSSS")
-    private LocalDateTime recordedAt;
 }
