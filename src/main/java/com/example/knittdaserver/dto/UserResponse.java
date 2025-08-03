@@ -9,6 +9,7 @@ import lombok.ToString;
 @Builder
 @ToString
 public class UserResponse {
+    private Long id;
     private Long kakaoId;
     private String email;
     private String nickname;
@@ -16,6 +17,7 @@ public class UserResponse {
 
     public static UserResponse from(User user) {
         return UserResponse.builder()
+                .id(user.getId())
                 .kakaoId(user.getKakaoId())
                 .email(user.getEmail())
                 .nickname(user.getNickname())

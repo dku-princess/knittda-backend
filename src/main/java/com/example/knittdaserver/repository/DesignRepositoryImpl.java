@@ -22,12 +22,8 @@ public class DesignRepositoryImpl implements DesignRepositoryCustom {
     @Override
     public List<DesignDto> searchByKeyword(List<String> keywords) {
         QDesign design = QDesign.design;
-        BooleanBuilder baseCondition = new BooleanBuilder();
         BooleanBuilder keywordCondition = new BooleanBuilder();
         CaseBuilder caseBuilder = new CaseBuilder();
-
-        // 기본 조건: visible이 true인 도안만 조회
-        baseCondition.and(design.visible.isTrue());
 
         // 키워드 조건
         for (String keyword : keywords) {
@@ -52,22 +48,15 @@ public class DesignRepositoryImpl implements DesignRepositoryCustom {
                                 design.id,
                                 design.title,
                                 design.designer,
-                                design.price,
-                                design.imageUrl,
-                                design.detailUrl,
-                                design.categories,
-                                design.tools,
-                                design.sizes,
-                                design.gauge,
-                                design.needles,
+                                design.needleInfo,
                                 design.yarnInfo,
-                                design.pages,
-                                design.visible
+                                design.description,
+                                design.createdAt
                         )
                 )
                 .distinct()
                 .from(design)
-                .where(baseCondition.and(keywordCondition))
+                .where(keywordCondition)
                 .orderBy(score.desc())
                 .fetch();
     }

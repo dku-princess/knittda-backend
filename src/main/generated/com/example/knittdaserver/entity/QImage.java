@@ -22,13 +22,13 @@ public class QImage extends EntityPathBase<Image> {
 
     public static final QImage image = new QImage("image");
 
+    public final DateTimePath<java.time.LocalDateTime> createdAt = createDateTime("createdAt", java.time.LocalDateTime.class);
+
     public final NumberPath<Long> id = createNumber("id", Long.class);
 
-    public final NumberPath<Long> imageOrder = createNumber("imageOrder", Long.class);
+    public final NumberPath<Integer> imageOrder = createNumber("imageOrder", Integer.class);
 
     public final StringPath imageUrl = createString("imageUrl");
-
-    public final QProject project;
 
     public final QRecord record;
 
@@ -50,7 +50,6 @@ public class QImage extends EntityPathBase<Image> {
 
     public QImage(Class<? extends Image> type, PathMetadata metadata, PathInits inits) {
         super(type, metadata, inits);
-        this.project = inits.isInitialized("project") ? new QProject(forProperty("project"), inits.get("project")) : null;
         this.record = inits.isInitialized("record") ? new QRecord(forProperty("record"), inits.get("record")) : null;
     }
 
