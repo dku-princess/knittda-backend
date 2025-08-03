@@ -5,17 +5,20 @@ import com.example.knittdaserver.dto.AuthResponse;
 import com.example.knittdaserver.dto.UserDto;
 import com.example.knittdaserver.dto.UserResponse;
 import com.example.knittdaserver.service.AuthService;
+import com.example.knittdaserver.util.JwtUtil;
+
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.parameters.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -112,4 +115,14 @@ public class AuthController {
         log.info(user.toString());
         return ResponseEntity.ok(ApiResponse.success(user));
     }
+
+    @DeleteMapping("/signout")
+    public ResponseEntity<ApiResponse<Void>> signout(
+            @RequestHeader(name = "Authorization") String token) {
+
+        String accessToken = token.replace("Bearer ", "");
+        authService.deleteUser(accessToken);
+        return ResponseEntity.ok(ApiResponse.success(null));
+    }
+
 }

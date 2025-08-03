@@ -7,6 +7,7 @@ import com.querydsl.core.types.dsl.*;
 import com.querydsl.core.types.PathMetadata;
 import javax.annotation.processing.Generated;
 import com.querydsl.core.types.Path;
+import com.querydsl.core.types.dsl.PathInits;
 
 
 /**
@@ -17,46 +18,47 @@ public class QDesign extends EntityPathBase<Design> {
 
     private static final long serialVersionUID = 110850640L;
 
+    private static final PathInits INITS = PathInits.DIRECT2;
+
     public static final QDesign design = new QDesign("design");
 
-    public final StringPath categories = createString("categories");
+    public final DateTimePath<java.time.LocalDateTime> createdAt = createDateTime("createdAt", java.time.LocalDateTime.class);
+
+    public final StringPath description = createString("description");
 
     public final StringPath designer = createString("designer");
 
-    public final StringPath detailUrl = createString("detailUrl");
-
-    public final StringPath gauge = createString("gauge");
-
     public final NumberPath<Long> id = createNumber("id", Long.class);
 
-    public final StringPath imageUrl = createString("imageUrl");
+    public final StringPath needleInfo = createString("needleInfo");
 
-    public final StringPath needles = createString("needles");
-
-    public final StringPath pages = createString("pages");
-
-    public final StringPath price = createString("price");
-
-    public final StringPath sizes = createString("sizes");
+    public final QProject project;
 
     public final StringPath title = createString("title");
-
-    public final StringPath tools = createString("tools");
 
     public final BooleanPath visible = createBoolean("visible");
 
     public final StringPath yarnInfo = createString("yarnInfo");
 
     public QDesign(String variable) {
-        super(Design.class, forVariable(variable));
+        this(Design.class, forVariable(variable), INITS);
     }
 
     public QDesign(Path<? extends Design> path) {
-        super(path.getType(), path.getMetadata());
+        this(path.getType(), path.getMetadata(), PathInits.getFor(path.getMetadata(), INITS));
     }
 
     public QDesign(PathMetadata metadata) {
-        super(Design.class, metadata);
+        this(metadata, PathInits.getFor(metadata, INITS));
+    }
+
+    public QDesign(PathMetadata metadata, PathInits inits) {
+        this(Design.class, metadata, inits);
+    }
+
+    public QDesign(Class<? extends Design> type, PathMetadata metadata, PathInits inits) {
+        super(type, metadata, inits);
+        this.project = inits.isInitialized("project") ? new QProject(forProperty("project"), inits.get("project")) : null;
     }
 
 }

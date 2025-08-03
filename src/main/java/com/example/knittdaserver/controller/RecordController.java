@@ -3,7 +3,6 @@ package com.example.knittdaserver.controller;
 import com.example.knittdaserver.common.response.ApiResponse;
 import com.example.knittdaserver.dto.CreateRecordRequest;
 import com.example.knittdaserver.dto.RecordResponse;
-import com.example.knittdaserver.dto.UpdateProjectRequest;
 import com.example.knittdaserver.dto.UpdateRecordRequest;
 import com.example.knittdaserver.service.RecordService;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -11,8 +10,6 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.persistence.PreUpdate;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -53,7 +50,8 @@ public class RecordController {
         return ResponseEntity.ok(ApiResponse.success(record));
     }
 
-    @Operation(summary = "모든 Record 조회", description = "모든 Record를 조회합니다.")
+
+    @Operation(summary = "개인 Record 조회", description = "개인의 모든 Record를 조회합니다.")
     @GetMapping("/")
     public ResponseEntity<ApiResponse<List<RecordResponse>>> getAllRecords(
             @RequestHeader(name = "Authorization") String token
@@ -64,21 +62,20 @@ public class RecordController {
 
     @Operation(summary = "프로젝트별 Record 조회", description = "프로젝트 ID를 기반으로 Record를 조회합니다.")
     @GetMapping("/projects/{projectId}")
-    public ResponseEntity<ApiResponse<List<RecordResponse>>> getRecordsByProjectId(
-            @RequestHeader(name = "Authorization") String token,
+    public ResponseEntity<ApiResponse<List<RecordResponse>>> getMyRecordsByProjectId(
             @PathVariable Long projectId
     ){
-        List<RecordResponse> records = recordService.getRecordsByProjectId(token, projectId);
+        List<RecordResponse> records = recordService.getRecordsByProjectId(projectId);
         return ResponseEntity.ok(ApiResponse.success(records));
     }
+
 
     @Operation(summary = "Record 상세 조회", description = "Record ID를 기반으로 Record를 조회합니다.")
     @GetMapping("/{recordId}")
     public ResponseEntity<ApiResponse<RecordResponse>> getRecordById(
-            @RequestHeader(name = "Authorization") String token,
             @PathVariable Long recordId
     ){
-        RecordResponse record = recordService.getRecordById(token, recordId);
+        RecordResponse record = recordService.getRecordById(recordId);
         return ResponseEntity.ok(ApiResponse.success(record));
     }
 
@@ -96,7 +93,6 @@ public class RecordController {
         try {
             // record JSON 파싱
             request = objectMapper.readValue(updateRecordJson, UpdateRecordRequest.class);
-            log.info("Record JSON: {}", objectMapper.writeValueAsString(request));
 
             // deleteImageIds JSON 파싱
             if (deleteImageIdsJson != null && !deleteImageIdsJson.isEmpty()) {

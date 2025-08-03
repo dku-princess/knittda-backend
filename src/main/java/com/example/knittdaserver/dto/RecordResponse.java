@@ -1,7 +1,5 @@
 package com.example.knittdaserver.dto;
 
-import com.example.knittdaserver.entity.Image;
-import com.example.knittdaserver.entity.ImageDto;
 import com.example.knittdaserver.entity.Record;
 import com.example.knittdaserver.entity.RecordStatus;
 import com.fasterxml.jackson.annotation.JsonFormat;
@@ -15,16 +13,17 @@ import lombok.Setter;
 import lombok.ToString;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Builder
 @Getter
 @Setter
-@Builder
 @ToString
 public class RecordResponse {
     private Long id;
-    private ProjectDto projectDto;
+    private Long projectId;
     private RecordStatus recordStatus;
     private List<String> tags;
     private String comment;
@@ -33,14 +32,15 @@ public class RecordResponse {
     @JsonDeserialize(using = LocalDateTimeDeserializer.class)
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSSSS")
     private LocalDateTime createdAt;
+
     private List<ImageDto> images;
 
     public static RecordResponse from(Record record) {
         return RecordResponse.builder()
                 .id(record.getId())
-                .projectDto(ProjectDto.from(record.getProject()))
+                .projectId(record.getProject().getId()) 
                 .recordStatus(record.getRecordStatus())
-                .tags(record.getTags())
+                .tags(record.getTags() != null ? record.getTags() : new ArrayList<>())
                 .comment(record.getComment())
                 .createdAt(record.getCreatedAt())
                 .images(

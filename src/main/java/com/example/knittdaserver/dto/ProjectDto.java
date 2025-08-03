@@ -1,6 +1,5 @@
 package com.example.knittdaserver.dto;
 
-import com.example.knittdaserver.entity.ImageDto;
 import com.example.knittdaserver.entity.Project;
 import com.example.knittdaserver.entity.ProjectStatus;
 import com.fasterxml.jackson.annotation.JsonFormat;
@@ -25,12 +24,11 @@ import java.time.LocalDateTime;
 public class ProjectDto {
 
     private Long id;
-    private DesignDto designDto;
+    private DesignDto design;
     private Long userId;
     private String nickname;
     private ProjectStatus status;
-    private String customYarnInfo;
-    private String customNeedleInfo;
+    private String thumbnailUrl;
 
     @JsonSerialize(using = LocalDateTimeSerializer.class)
     @JsonDeserialize(using = LocalDateTimeDeserializer.class)
@@ -56,23 +54,21 @@ public class ProjectDto {
     @JsonDeserialize(using = LocalDateDeserializer.class)
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
     private LocalDate goalDate;
-
-    private ImageDto image;
+    
 
     public static ProjectDto from(Project project) {
         return ProjectDto.builder()
                 .id(project.getId())
-                .designDto(DesignDto.from(project.getDesign()))
+                .design(DesignDto.from(project.getDesign()))
                 .userId(project.getUser().getId())
                 .nickname(project.getNickname())
                 .status(project.getStatus())
-                .customYarnInfo(project.getCustomYarnInfo())
-                .customNeedleInfo(project.getCustomNeedleInfo())
                 .createdAt(project.getCreatedAt())
+                .lastRecordAt(project.getLastRecordAt())
                 .startDate(project.getStartDate())
                 .endDate(project.getEndDate())
                 .goalDate(project.getGoalDate())
-                .image(ImageDto.from(project.getImage()))
+                .thumbnailUrl(project.getThumbnail() != null ? project.getThumbnail().getImageUrl() : null)
                 .build();
     }
 }

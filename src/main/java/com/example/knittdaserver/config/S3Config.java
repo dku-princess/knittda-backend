@@ -4,16 +4,19 @@ import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
+import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class S3Config {
-    @Value("${cloud.aws.credentials.access-key}")
+    @Value("${AWS_ACCESS_KEY_ID}")
     private String accessKey;
-    @Value("${cloud.aws.credentials.secret-key}")
+
+    @Value("${AWS_SECRET_ACCESS_KEY}")
     private String secretKey;
+
     @Value("${cloud.aws.region.static}")
     private String region;
 
@@ -27,4 +30,9 @@ public class S3Config {
                 .withRegion(region)
                 .build();
     }
+
+//    @PostConstruct
+//    public void init() {
+//        System.out.println("S3Config:: AWS_ACCESS_KEY_ID = " + accessKey);
+//    }
 }

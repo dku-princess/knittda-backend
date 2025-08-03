@@ -7,9 +7,13 @@ import com.example.knittdaserver.dto.AuthResponse;
 import com.example.knittdaserver.dto.KakaoUserResponse;
 import com.example.knittdaserver.dto.UserDto;
 import com.example.knittdaserver.dto.UserResponse;
+import com.example.knittdaserver.entity.Project;
 import com.example.knittdaserver.entity.User;
+import com.example.knittdaserver.repository.ProjectRepository;
 import com.example.knittdaserver.repository.UserRepository;
 import com.example.knittdaserver.util.JwtUtil;
+
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
@@ -17,6 +21,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
+import java.util.List;
 import java.util.Optional;
 
 @Slf4j
@@ -26,16 +31,18 @@ public class AuthService {
 
     private final UserRepository userRepository;
     private final JwtUtil jwtUtil;
+    private final ProjectRepository projectRepository;
     private final WebClient.Builder webClientBuilder;
 
     private final String KAKAO_USER_INFO_URL = "https://kapi.kakao.com/v2/user/me";
 
+    @Transactional
     public AuthResponse loginWithKakao(String kakaoAccessToken) {
 
         UserDto userDto = getUserInfo(kakaoAccessToken);
         Optional<User> userOptional = userRepository.findByKakaoId(userDto.getKakaoId());
-
         User user;
+        
         if (userOptional.isPresent()) {
             user = userOptional.get();
         } else {
@@ -49,6 +56,7 @@ public class AuthService {
         }
 
         String jwt = jwtUtil.generateToken(user.getId());
+        userDto = UserDto.from(user);
         return new AuthResponse(jwt, userDto);
     }
 
@@ -72,6 +80,7 @@ public class AuthService {
             }
 
             return UserDto.builder()
+            
                     .kakaoId(kakaoUserResponse.getId())
                     .nickname(kakaoUserResponse.getKakao_account().getProfile().getNickname())
                     .email(kakaoUserResponse.getKakao_account().getEmail())
@@ -109,4 +118,14 @@ public class AuthService {
     }
 
 
+    @Transactional
+    public void deleteUser(String jwt) {
+        Long userId = jwtUtil.validateAndExtractUserId(jwt);
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(ApiResponseCode.USER_NOT_FOUND));
+        List<Project> projects = projectRepository.findByUserId(userId);
+        projectRepository.deleteAll(projects);
+        userRepository.delete(user);
+    }
+    
 }

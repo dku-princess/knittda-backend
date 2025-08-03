@@ -23,14 +23,24 @@ public class Project {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @OneToOne(cascade = CascadeType.REMOVE, orphanRemoval = true)
     @JoinColumn(name = "design_id", nullable = false)
+    @ToString.Exclude
     private Design design;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
+    @JoinColumn(name = "thumbnail")
+    @OneToOne(fetch = FetchType.LAZY)
+    private ThumbnailImage thumbnail;
 
+    @OneToMany(mappedBy = "project", cascade = CascadeType.PERSIST, orphanRemoval = true, fetch = FetchType.LAZY)
+    @OrderBy("createdAt DESC")
+    @Builder.Default private List<Record> records = new ArrayList<>(0);
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false,
+        foreignKey = @ForeignKey(name = "fk_project_user"))
+    private User user;
+    
     @Column(nullable = false)
     private String nickname;
 
@@ -39,14 +49,12 @@ public class Project {
     @Builder.Default
     private ProjectStatus status = ProjectStatus.IN_PROGRESS;
 
-    @Column(name = "custom_yarn_info", columnDefinition = "TEXT")
-    private String customYarnInfo;
-
-    @Column(name = "custom_needle_info", columnDefinition = "TEXT")
-    private String customNeedleInfo;
-
     @CreationTimestamp
     private LocalDateTime createdAt;
+
+    @Column(name = "last_record_at")
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSSSS")
+    private LocalDateTime lastRecordAt;
 
     @Column(name = "start_date")
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
@@ -60,12 +68,6 @@ public class Project {
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
     private LocalDate goalDate;
 
-    @Builder.Default
-    @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Record> records = new ArrayList<>();
-
-    @OneToOne(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
-    private Image image;
     public boolean isOwnedBy(Long userId) {
         return this.user.getId().equals(userId);
     }
@@ -79,13 +81,6 @@ public class Project {
             this.status = request.getStatus();
         }
 
-        if (request.getCustomYarnInfo() != null) {
-            this.customYarnInfo = request.getCustomYarnInfo();
-        }
-
-        if (request.getCustomNeedleInfo() != null) {
-            this.customNeedleInfo = request.getCustomNeedleInfo();
-        }
 
         if (request.getStartDate() != null) {
             this.startDate = request.getStartDate();
@@ -100,14 +95,16 @@ public class Project {
         }
     }
 
-    public void setImage(Image image) {
-        this.image = image;
-        if(image != null) {
-            image.setProject(this);
-        }
-    }
-
     public void setDesign(Design design) {
         this.design = design;
     }
+
+    public void setLastRecordAt(LocalDateTime lastRecordAt) {
+        this.lastRecordAt = lastRecordAt;
+    }
+
+    public void setThumbnail(ThumbnailImage thumbnail) {
+        this.thumbnail = thumbnail;
+    }
+
 }

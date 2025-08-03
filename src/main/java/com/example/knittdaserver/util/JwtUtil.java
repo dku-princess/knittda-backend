@@ -20,8 +20,7 @@ public class JwtUtil {
         Key key = Keys.hmacShaKeyFor(SECRET_KEY.getBytes(StandardCharsets.UTF_8));
         return Jwts.builder()
                 .setSubject(String.valueOf(userId))
-//                .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
-                .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME * 10000))
+                .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME * 1000))
                 .signWith(key, SignatureAlgorithm.HS256)
                 .compact();
     }
@@ -34,4 +33,6 @@ public class JwtUtil {
                 .getBody();
         return Long.parseLong(claims.getSubject());
     }
+
+
 }

@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+    
+    <!-- Console Appender -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+    
+    <!-- File Appender -->
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>logs/knittda.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>logs/knittda.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>30</maxHistory>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+    
+    <!-- Logstash Appender -->
+    <appender name="LOGSTASH" class="net.logstash.logback.appender.LogstashTcpSocketAppender">
+        <destination>logstash:5000</destination>
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+            <includeMdcData>true</includeMdcData>
+            <customFields>{"app_name":"knittda-backend","environment":"production"}</customFields>
+            <includeMdcKeyName>userId</includeMdcKeyName>
+            <includeMdcKeyName>userNickname</includeMdcKeyName>
+            <includeMdcKeyName>userEmail</includeMdcKeyName>
+            <includeMdcKeyName>kakaoId</includeMdcKeyName>
+            <includeMdcKeyName>requestId</includeMdcKeyName>
+            <includeMdcKeyName>requestPath</includeMdcKeyName>
+            <includeMdcKeyName>requestMethod</includeMdcKeyName>
+            <includeMdcKeyName>clientIP</includeMdcKeyName>
+            <includeMdcKeyName>responseStatus</includeMdcKeyName>
+            <includeMdcKeyName>projectId</includeMdcKeyName>
+            <includeMdcKeyName>question</includeMdcKeyName>
+            <includeMdcKeyName>comment</includeMdcKeyName>
+            <includeMdcKeyName>commentLength</includeMdcKeyName>
+            <includeMdcKeyName>imageCount</includeMdcKeyName>
+            <includeMdcKeyName>recordStatus</includeMdcKeyName>
+            <includeMdcKeyName>tags</includeMdcKeyName>
+        </encoder>
+        <reconnectionDelay>1000</reconnectionDelay>
+        <writeTimeout>5000</writeTimeout>
+    </appender>
+    
+    <!-- Root Logger -->
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="FILE"/>
+        <appender-ref ref="LOGSTASH"/>
+    </root>
+    
+    <!-- Application specific loggers -->
+    <logger name="com.example.knittdaserver" level="INFO"/>
+    <logger name="com.example.knittdaserver.service.RecordService" level="INFO"/>
+    
+    <!-- Framework loggers -->
+    <logger name="org.springframework" level="WARN"/>
+    <logger name="org.hibernate" level="WARN"/>
+</configuration> 
