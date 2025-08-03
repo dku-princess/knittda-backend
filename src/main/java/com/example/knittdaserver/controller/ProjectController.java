@@ -1,10 +1,9 @@
 package com.example.knittdaserver.controller;
 
 import com.example.knittdaserver.common.response.ApiResponse;
-import com.example.knittdaserver.common.response.ApiResponseCode;
-import com.example.knittdaserver.common.response.CustomException;
 import com.example.knittdaserver.dto.CreateProjectRequest;
 import com.example.knittdaserver.dto.ProjectDto;
+import com.example.knittdaserver.dto.ProjectPreviewResponse;
 import com.example.knittdaserver.dto.UpdateProjectRequest;
 import com.example.knittdaserver.service.ProjectService;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -13,8 +12,6 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.annotation.Nullable;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -59,8 +56,8 @@ public class ProjectController {
             throw new IllegalArgumentException("Invalid JSON format for 'record'", e);
         }
 
-        ProjectDto project = projectService.createProject(token, request, file);
-        return ResponseEntity.ok(ApiResponse.success(project));
+        ProjectDto projectDto = projectService.createProject(token, request, file);
+        return ResponseEntity.ok(ApiResponse.success(projectDto));
     }
 
     @Operation(summary = "내 프로젝트 목록 조회", description = "로그인한 사용자의 프로젝트 목록을 조회합니다.")
@@ -72,12 +69,24 @@ public class ProjectController {
         return ResponseEntity.ok(ApiResponse.success(projects));
     }
 
+
+    @Operation(summary = "프로젝트 단건 조회", description = "특정 프로젝트의 상세 정보를 조회합니다.")
+    @GetMapping("/my/{projectId}")
+    public ResponseEntity<ApiResponse<ProjectDto>> getMyProject(
+            @RequestHeader(name = "Authorization") String token,
+            @PathVariable Long projectId
+            ){
+        ProjectDto project = projectService.getMyProjectById(token, projectId);
+        return ResponseEntity.ok(ApiResponse.success(project));
+    }
+
+
     @Operation(summary = "프로젝트 단건 조회", description = "특정 프로젝트의 상세 정보를 조회합니다.")
     @GetMapping("/{projectId}")
     public ResponseEntity<ApiResponse<ProjectDto>> getProject(
-            @RequestHeader(name = "Authorization") String token,
-            @PathVariable Long projectId){
-        ProjectDto project = projectService.getProjectById(token, projectId);
+            @PathVariable Long projectId
+    ) {
+        ProjectDto project = projectService.getProjectById(projectId);
         return ResponseEntity.ok(ApiResponse.success(project));
     }
 
@@ -107,5 +116,12 @@ public class ProjectController {
             @PathVariable Long projectId){
         projectService.deleteProject(token, projectId);
         return ResponseEntity.ok(ApiResponse.success(null));
+    }
+
+    @Operation(summary = "프로젝트 미리보기 조회", description = "프로젝트 미리보기를 조회합니다.")
+    @GetMapping("/previews")
+    public ResponseEntity<ApiResponse<List<ProjectPreviewResponse>>> getProjectPreviews(){
+        List<ProjectPreviewResponse> previews = projectService.getProjectPreviews();
+        return ResponseEntity.ok(ApiResponse.success(previews));
     }
 }

@@ -34,8 +34,10 @@ public enum ApiResponseCode {
     INVALID_INPUT("C001", "입력값이 올바르지 않습니다", HttpStatus.BAD_REQUEST),
 
     // 서버 오류
-    SERVER_ERROR("E500", "서버 내부 오류입니다", HttpStatus.INTERNAL_SERVER_ERROR);
+    SERVER_ERROR("E500", "서버 내부 오류입니다", HttpStatus.INTERNAL_SERVER_ERROR),
 
+    // 이미지 업로드 관련
+    IMAGE_UPLOAD_FAILED("I001", "이미지 업로드에 실패했습니다", HttpStatus.INTERNAL_SERVER_ERROR);
 
     private final String code;
     private final String message;

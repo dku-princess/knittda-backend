@@ -7,8 +7,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
 
+import jakarta.transaction.Transactional;
+import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.util.UUID;
@@ -22,15 +23,16 @@ public class S3Service {
     @Value("${cloud.aws.s3.bucketName}")
     private String bucketName;
 
-    public String uploadFile(MultipartFile file) {
-        String fileName = generateFileName(file.getOriginalFilename());
+    @Transactional
+    public String uploadFile(File file) {
+        String originalFileName = file.getName();
+        String fileName = generateFileName(originalFileName);
         try {
             ObjectMetadata metadata = new ObjectMetadata();
-            metadata.setContentType(file.getContentType());
-            metadata.setContentLength(file.getSize());
+            metadata.setContentLength(file.length());
+            metadata.setContentType("image/webp");
 
-            amazonS3.putObject(bucketName, fileName, file.getInputStream(), metadata);
-//            amazonS3.setObjectAcl(bucketName, fileName, CannedAccessControlList.PublicRead);
+            amazonS3.putObject(bucketName, fileName, new java.io.FileInputStream(file), metadata);
 
             return amazonS3.getUrl(bucketName, fileName).toString();
         } catch (IOException e) {
@@ -38,6 +40,7 @@ public class S3Service {
         }
     }
 
+    @Transactional
     public void deleteFile(String fileName) {
         amazonS3.deleteObject(bucketName, fileName);
     }

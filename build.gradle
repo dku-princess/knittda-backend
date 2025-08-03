@@ -49,11 +49,18 @@ dependencies {
     // Jackson for JSON processing
     implementation 'io.sentry:sentry-spring-boot-starter-jakarta:7.9.0'
 
+    implementation 'com.sksamuel.scrimage:scrimage-core:4.3.1'
+    implementation 'com.sksamuel.scrimage:scrimage-webp:4.3.1'
+
 
     implementation "com.fasterxml.jackson.core:jackson-core:${jacksonVersion}"
     implementation "com.fasterxml.jackson.core:jackson-databind:${jacksonVersion}"
     implementation "com.fasterxml.jackson.core:jackson-annotations:${jacksonVersion}"
     implementation "com.fasterxml.jackson.datatype:jackson-datatype-jsr310:${jacksonVersion}"
+
+    implementation 'com.theokanning.openai-gpt3-java:service:0.18.2'
+    // .env 파일 자동 로드
+    implementation 'me.paulschwarz:spring-dotenv:4.0.0'
 
     implementation("io.jsonwebtoken:jjwt-jackson:0.11.2") {
         exclude group: "com.fasterxml.jackson.core"
@@ -61,6 +68,9 @@ dependencies {
     implementation("io.sentry:sentry-spring-boot-starter-jakarta:7.9.0") {
         exclude group: "com.fasterxml.jackson.core"
     }
+    
+    // Logstash Logback Encoder for ELK Stack
+    implementation 'net.logstash.logback:logstash-logback-encoder:7.4'
 
 }
 
