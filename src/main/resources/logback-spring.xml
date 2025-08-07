@@ -21,38 +21,10 @@
         </encoder>
     </appender>
     
-    <!-- Logstash Appender -->
-    <appender name="LOGSTASH" class="net.logstash.logback.appender.LogstashTcpSocketAppender">
-        <destination>logstash:5000</destination>
-        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
-            <includeMdcData>true</includeMdcData>
-            <customFields>{"app_name":"knittda-backend","environment":"production"}</customFields>
-            <includeMdcKeyName>userId</includeMdcKeyName>
-            <includeMdcKeyName>userNickname</includeMdcKeyName>
-            <includeMdcKeyName>userEmail</includeMdcKeyName>
-            <includeMdcKeyName>kakaoId</includeMdcKeyName>
-            <includeMdcKeyName>requestId</includeMdcKeyName>
-            <includeMdcKeyName>requestPath</includeMdcKeyName>
-            <includeMdcKeyName>requestMethod</includeMdcKeyName>
-            <includeMdcKeyName>clientIP</includeMdcKeyName>
-            <includeMdcKeyName>responseStatus</includeMdcKeyName>
-            <includeMdcKeyName>projectId</includeMdcKeyName>
-            <includeMdcKeyName>question</includeMdcKeyName>
-            <includeMdcKeyName>comment</includeMdcKeyName>
-            <includeMdcKeyName>commentLength</includeMdcKeyName>
-            <includeMdcKeyName>imageCount</includeMdcKeyName>
-            <includeMdcKeyName>recordStatus</includeMdcKeyName>
-            <includeMdcKeyName>tags</includeMdcKeyName>
-        </encoder>
-        <reconnectionDelay>1000</reconnectionDelay>
-        <writeTimeout>5000</writeTimeout>
-    </appender>
-    
     <!-- Root Logger -->
     <root level="INFO">
         <appender-ref ref="CONSOLE"/>
         <appender-ref ref="FILE"/>
-        <appender-ref ref="LOGSTASH"/>
     </root>
     
     <!-- Application specific loggers -->

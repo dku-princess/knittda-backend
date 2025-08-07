@@ -38,6 +38,8 @@ public class QRecord extends EntityPathBase<Record> {
 
     public final ListPath<String, StringPath> tags = this.<String, StringPath>createList("tags", String.class, StringPath.class, PathInits.DIRECT2);
 
+    public final DateTimePath<java.time.LocalDateTime> updatedAt = createDateTime("updatedAt", java.time.LocalDateTime.class);
+
     public QRecord(String variable) {
         this(Record.class, forVariable(variable), INITS);
     }
