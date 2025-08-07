@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -51,6 +52,11 @@ public class Record {
     @OneToMany(mappedBy = "record", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<Image> images = new ArrayList<>(0);
 
+
+    @UpdateTimestamp
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSSSS")
+    @Column(name = "updated_at", updatable = true)
+    private LocalDateTime updatedAt;
 
     public void updateFromRequest(UpdateRecordRequest request) {
 

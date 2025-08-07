@@ -7,6 +7,7 @@ import com.example.knittdaserver.dto.RecordResponse;
 import com.example.knittdaserver.dto.UpdateRecordRequest;
 import com.example.knittdaserver.entity.*;
 import com.example.knittdaserver.entity.Record;
+import com.example.knittdaserver.entity.ProjectStatus;
 
 import com.example.knittdaserver.repository.ImageRepository;
 import com.example.knittdaserver.repository.ProjectRepository;
@@ -17,7 +18,7 @@ import com.theokanning.openai.embedding.EmbeddingResult;
 import com.theokanning.openai.service.OpenAiService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.MDC;
+
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -48,19 +49,12 @@ public class RecordService {
                 .orElseThrow(() -> new CustomException(ApiResponseCode.PROJECT_NOT_FOUND));
         projectService.validateOwnership(project, user);
 
-        // MDC에 사용자 및 요청 정보 추가
-        MDC.put("userId", user.getId().toString());
-        MDC.put("userNickname", user.getNickname() != null ? user.getNickname() : "unknown");
-        MDC.put("projectId", project.getId().toString());
-        MDC.put("question", request.getQuestion());
-        MDC.put("comment", request.getComment() != null ? request.getComment() : "");
-        MDC.put("commentLength", String.valueOf(request.getComment() != null ? request.getComment().length() : 0));
-        MDC.put("imageCount", String.valueOf(files != null ? files.size() : 0));
-        MDC.put("recordStatus", request.getRecordStatus());
-        MDC.put("tags", request.getTags() != null ? String.join(",", request.getTags()) : "");
 
-        log.info("Record 생성 시작 - question: {}, commentLength: {}, imageCount: {}", 
-                request.getQuestion(), request.getComment() != null ? request.getComment().length() : 0, 
+        log.info("[250805 수정] Record 생성 시작 - question: {}, comment: {}, user: {}, commentLength: {}, imageCount: {}", 
+                request.getQuestion(), 
+                request.getComment(),
+                user.getNickname(),
+                request.getComment() != null ? request.getComment().length() : 0, 
                 files != null ? files.size() : 0);
         
         // 1. record에 모든 값 세팅
@@ -70,6 +64,7 @@ public class RecordService {
                 .project(project)
                 .recordStatus(RecordStatus.fromString(request.getRecordStatus()))
                 .build();
+        
 
         // 2. 이미지 등 추가 세팅
         if (files != null) {
@@ -99,18 +94,18 @@ public class RecordService {
             log.info("✅ Record 임베딩 생성 완료");
         } catch (Exception e) {
             log.error("❌ Record 임베딩 생성 실패: {}", e.getMessage());
-            MDC.put("errorType", "embedding_failure");
-            MDC.put("errorMessage", e.getMessage());
             // 임베딩 생성 실패해도 Record는 저장
         }
         // 4. Record 저장
         Record savedRecord = recordRepository.save(record);
         project.setLastRecordAt(savedRecord.getCreatedAt());
+        if (request.getRecordStatus().equals(RecordStatus.COMPLETED.toString())) {
+            project.setStatus(ProjectStatus.DONE);
+        }
         projectRepository.save(project);
         
-        // 성공 로그 및 MDC 정리
+        // 성공 로그
         log.info("Record 생성 완료 - recordId: {}", savedRecord.getId());
-        MDC.clear();
         
         return RecordResponse.from(savedRecord);
     }
@@ -124,12 +119,7 @@ public class RecordService {
 
     @Transactional
     public List<RecordResponse> getRecordsByProjectId(Long projectId) {
-        // User user = authService.getUserFromJwt(token);
-        // project 검증
-        // Project project = projectRepository.findById(projectId)
-        //         .orElseThrow(() -> new CustomException(ApiResponseCode.PROJECT_NOT_FOUND));
-        // if (!project.isOwnedBy(user.getId())){throw new CustomException(ApiResponseCode.FORBIDDEN_ACCESS);}
-        List<Record> records = recordRepository.findByProjectId(projectId);
+        List<Record> records = recordRepository.findByProjectIdOrderByCreatedAtDesc(projectId);
         return records.stream().map(RecordResponse::from).toList();
     }
 

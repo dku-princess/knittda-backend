@@ -69,8 +69,7 @@ dependencies {
         exclude group: "com.fasterxml.jackson.core"
     }
     
-    // Logstash Logback Encoder for ELK Stack
-    implementation 'net.logstash.logback:logstash-logback-encoder:7.4'
+
 
 }
 

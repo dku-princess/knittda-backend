@@ -68,6 +68,8 @@ public class AuthController {
     public ResponseEntity<ApiResponse<AuthResponse>> loginKakao(
             @RequestHeader(name = "Authorization") String token) {
 
+        log.info("token: {}", token);
+
         String accessToken = token.replace("Bearer ", "");
         AuthResponse authResponse = authService.loginWithKakao(accessToken);
         log.info(authResponse.toString());

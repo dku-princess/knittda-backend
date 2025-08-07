@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="dataSourceStorageLocal" created-in="IU-243.26053.27">
+    <data-source name="knittda_db@localhost" uuid="3b4b778c-c0f6-4f46-9a38-c2920e27364a">
+      <database-info product="" version="" jdbc-version="" driver-name="" driver-version="" dbms="MYSQL" />
+      <schema-mapping />
+    </data-source>
+    <data-source name="knittda-db@localhost" uuid="1d4dd933-33ed-4c1c-9450-a5a66ffac263">
+      <database-info product="" version="" jdbc-version="" driver-name="" driver-version="" dbms="MYSQL" />
+      <schema-mapping />
+    </data-source>
+    <data-source name="knittda-db@13.125.122.193" uuid="acb87ee7-8579-41f6-a901-358312fb55b7">
+      <database-info product="MySQL" version="8.0.42" jdbc-version="4.2" driver-name="MySQL Connector/J" driver-version="mysql-connector-j-8.2.0 (Revision: 06a1f724497fd81c6a659131fda822c9e5085b6c)" dbms="MYSQL" exact-version="8.0.42" exact-driver-version="8.2">
+        <extra-name-characters>#@</extra-name-characters>
+        <identifier-quote-string>`</identifier-quote-string>
+      </database-info>
+      <case-sensitivity plain-identifiers="exact" quoted-identifiers="exact" />
+      <secret-storage>master_key</secret-storage>
+      <user-name>user</user-name>
+      <schema-mapping>
+        <introspection-scope>
+          <node kind="schema" qname="@" />
+        </introspection-scope>
+      </schema-mapping>
+    </data-source>
+  </component>
+</project>

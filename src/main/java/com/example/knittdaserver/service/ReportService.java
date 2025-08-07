@@ -28,12 +28,9 @@ public class ReportService {
     public ReportResponse createReport(String token) {
         User user = authService.getUserFromJwt(token);
 
-        // 1️⃣ 전 주 월요일~일요일 범위 계산
-        LocalDate today = LocalDate.now();
-        LocalDate lastWeekMonday = today.minusWeeks(1).with(DayOfWeek.MONDAY);
-        LocalDateTime startOfWeek = lastWeekMonday.atStartOfDay();
-//        LocalDateTime endOfWeek = lastWeekMonday.with(DayOfWeek.SUNDAY).atTime(LocalTime.MAX);
+        // 1️⃣ 요청한 날을 포함해 이전 7일 간의 범위 계산
         LocalDateTime endOfWeek = LocalDateTime.now();
+        LocalDateTime startOfWeek = endOfWeek.minusDays(6).withHour(0).withMinute(0).withSecond(0).withNano(0);
 
         // 2️⃣ 주간 기록 조회
         List<Record> records = recordRepository.findWeeklyRecordsByUserId(
