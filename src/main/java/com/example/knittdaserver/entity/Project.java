@@ -107,4 +107,7 @@ public class Project {
         this.thumbnail = thumbnail;
     }
 
+    public void setStatus(ProjectStatus status) {
+        this.status = status;
+    }
 }

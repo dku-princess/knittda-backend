@@ -21,6 +21,8 @@ public interface RecordRepository extends JpaRepository<Record, Long> {
 
     List<Record> findByProjectId(Long projectId);
 
+    List<Record> findByProjectIdOrderByCreatedAtDesc(Long projectId);
+
     @Query("SELECT r FROM Record r " +
             "WHERE r.project.user.id = :userId " +
             "AND r.createdAt >= :startOfWeek " +
@@ -35,7 +37,8 @@ public interface RecordRepository extends JpaRepository<Record, Long> {
     Page<Record> findAll(Pageable pageable);
 
     @EntityGraph(attributePaths = {"project", "project.user", "project.design"})
-//     @EntityGraph(attributePaths = {"project", "project.user", "images", "project.design"})
     @Query("SELECT DISTINCT r FROM Record r")
     List<Record> findAllWithAssociations();
+
+
 }
