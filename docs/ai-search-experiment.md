@@ -56,3 +56,5 @@
 
 
 ![버전별 정성 평가 수용 수](../images/search-result-1.png)
+
+![버전별 정성 평가 수용 수](../images/ai-search-version.png)
