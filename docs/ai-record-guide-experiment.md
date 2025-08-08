@@ -89,4 +89,6 @@
 정성 평가 결과 점수가 가장 높았던 **V6의 프롬프트**를 최종적으로 **서비스에 도입**하였습니다. 
 
 
+![AI 질문 기능 피드백](../images/question-result-1.png)
 
+![AI 질문 기능 피드백](../images/question-result-2.png)
