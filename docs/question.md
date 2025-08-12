@@ -1,5 +1,5 @@
 
-# 추가 자료
+# 부가 자료
 ## 뜨다 시연 영상
 https://drive.google.com/file/d/1Vtfm4ZjNcMdK44uc1LyDHX5igauLA22A/view?usp=sharing
 
