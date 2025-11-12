@@ -28,11 +28,7 @@ public class QImage extends EntityPathBase<Image> {
 
     public final NumberPath<Integer> imageOrder = createNumber("imageOrder", Integer.class);
 
-    public final EnumPath<Image.ImageType> imageType = createEnum("imageType", Image.ImageType.class);
-
     public final StringPath imageUrl = createString("imageUrl");
-
-    public final QProject project;
 
     public final QRecord record;
 
@@ -54,7 +50,6 @@ public class QImage extends EntityPathBase<Image> {
 
     public QImage(Class<? extends Image> type, PathMetadata metadata, PathInits inits) {
         super(type, metadata, inits);
-        this.project = inits.isInitialized("project") ? new QProject(forProperty("project"), inits.get("project")) : null;
         this.record = inits.isInitialized("record") ? new QRecord(forProperty("record"), inits.get("record")) : null;
     }
 

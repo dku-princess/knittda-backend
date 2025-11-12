@@ -36,6 +36,8 @@ public class QDesign extends EntityPathBase<Design> {
 
     public final StringPath title = createString("title");
 
+    public final BooleanPath visible = createBoolean("visible");
+
     public final StringPath yarnInfo = createString("yarnInfo");
 
     public QDesign(String variable) {

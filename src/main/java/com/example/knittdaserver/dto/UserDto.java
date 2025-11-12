@@ -11,6 +11,7 @@ import lombok.ToString;
 public class UserDto {
     private Long id;
     private Long kakaoId;
+    private String appleId;
     private String email;
     private String nickname;
     private String profileImageUrl;
@@ -19,6 +20,7 @@ public class UserDto {
         return UserDto.builder()
                 .id(user.getId())
                 .kakaoId(user.getKakaoId())
+                .appleId(user.getAppleId())
                 .email(user.getEmail())
                 .nickname(user.getNickname())
                 .profileImageUrl(user.getProfileImageUrl())

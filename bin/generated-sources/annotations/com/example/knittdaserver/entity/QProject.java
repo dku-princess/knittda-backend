@@ -42,7 +42,7 @@ public class QProject extends EntityPathBase<Project> {
 
     public final EnumPath<ProjectStatus> status = createEnum("status", ProjectStatus.class);
 
-    public final QImage thumbnail;
+    public final QThumbnailImage thumbnail;
 
     public final QUser user;
 
@@ -65,7 +65,7 @@ public class QProject extends EntityPathBase<Project> {
     public QProject(Class<? extends Project> type, PathMetadata metadata, PathInits inits) {
         super(type, metadata, inits);
         this.design = inits.isInitialized("design") ? new QDesign(forProperty("design"), inits.get("design")) : null;
-        this.thumbnail = inits.isInitialized("thumbnail") ? new QImage(forProperty("thumbnail"), inits.get("thumbnail")) : null;
+        this.thumbnail = inits.isInitialized("thumbnail") ? new QThumbnailImage(forProperty("thumbnail"), inits.get("thumbnail")) : null;
         this.user = inits.isInitialized("user") ? new QUser(forProperty("user")) : null;
     }
 

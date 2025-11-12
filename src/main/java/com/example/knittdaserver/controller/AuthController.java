@@ -31,7 +31,6 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
 
     private final AuthService authService;
-
     /**
      * 카카오 로그인 API
      *
@@ -67,15 +66,35 @@ public class AuthController {
     @GetMapping(value = "/kakao", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<ApiResponse<AuthResponse>> loginKakao(
             @RequestHeader(name = "Authorization") String token) {
-
-        log.info("token: {}", token);
-
         String accessToken = token.replace("Bearer ", "");
         AuthResponse authResponse = authService.loginWithKakao(accessToken);
-        log.info(authResponse.toString());
         return ResponseEntity.ok(ApiResponse.success(authResponse));
     }
 
+    @Operation(
+            summary = "관리자 로그인",
+            description = "관리자 계정을 통해 로그인합니다.",
+            responses = {
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "200",
+                            description = "로그인 성공",
+                            content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = AuthResponse.class))
+                    )})
+            
+    @GetMapping(value = "/admin", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<ApiResponse<AuthResponse>> loginAdmin() {
+        AuthResponse authResponse = authService.loginForAdmin();
+        return ResponseEntity.ok(ApiResponse.success(authResponse));
+    }
+
+    @GetMapping(value = "/apple", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<ApiResponse<AuthResponse>> loginApple(
+            @RequestHeader(name = "Authorization") String token) {
+        
+        String accessToken = token.replace("Bearer ", "");
+        AuthResponse authResponse = authService.loginWithApple(accessToken);
+        return ResponseEntity.ok(ApiResponse.success(authResponse));
+    }
     /**
      * JWT 토큰을 통해 사용자 정보 조회
      *
@@ -114,7 +133,6 @@ public class AuthController {
 
         String accessToken = token.replace("Bearer ", "");
         UserResponse user = authService.getUserResponseFromJwt(accessToken);
-        log.info(user.toString());
         return ResponseEntity.ok(ApiResponse.success(user));
     }
 
