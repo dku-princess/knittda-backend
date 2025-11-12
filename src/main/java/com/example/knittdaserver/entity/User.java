@@ -20,8 +20,11 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name="kakao_id", unique=true, nullable = false)
+    @Column(name="kakao_id", unique=true, nullable = true)
     private Long kakaoId;
+
+    @Column(name="apple_id", unique=true, nullable = true)
+    private String appleId;
 
     @Column(nullable = true)
     private String email;
