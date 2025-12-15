@@ -65,29 +65,29 @@ public class FeedService {
     }
 
     /**
-     * v3: Flask 서버를 통한 검색
+     * v6: Flask 서버를 통한 Hybrid 검색 (Embedding + ElasticSearch 3:7)
      * 1. 모든 Record 데이터를 Flask 서버로 전송
-     * 2. Flask 서버에서 유사도 검색 수행
+     * 2. Flask 서버에서 Embedding과 ElasticSearch 하이브리드 검색 수행 (3:7 비율)
      * 3. 결과를 받아서 FeedDto로 변환하여 반환
      * @param keyword 검색어
      * @param pageable 페이징 정보
      * @return FeedDto의 Page (Flask 서버 유사도 순)
      */
     public Page<FeedDto> searchFeedRecords(String keyword, Pageable pageable) {
-        log.info("[v3 search] 시작 - keyword: '{}', pageable: {}", keyword, pageable);
+        log.info("[v6 search] 시작 - keyword: '{}', pageable: {}", keyword, pageable);
         
         if (keyword == null || keyword.isBlank()) {
-            log.info("[v3 search] 키워드가 비어있어서 전체 조회로 변경");
+            log.info("[v6 search] 키워드가 비어있어서 전체 조회로 변경");
             return getFeedRecords(pageable);
         }
         
         try {
             // 1. 모든 Record 조회
             List<Record> allRecords = recordRepository.findAllWithAssociations();
-            log.info("[v3 search] 전체 Record 조회 완료: {}개", allRecords.size());
+            log.info("[v6 search] 전체 Record 조회 완료: {}개", allRecords.size());
             
             if (allRecords.isEmpty()) {
-                log.info("[v3 search] Record가 없어서 빈 결과 반환");
+                log.info("[v6 search] Record가 없어서 빈 결과 반환");
                 return new PageImpl<>(List.of(), pageable, 0);
             }
             
@@ -111,16 +111,16 @@ public class FeedService {
                 .feeds(allFeeds)
                 .build();
             
-            log.info("[v3 search] Flask 서버로 요청 전송 - 키워드: '{}', 데이터 개수: {}개", keyword, allFeeds.size());
+            log.info("[v6 search] Flask 서버로 요청 전송 - 키워드: '{}', 데이터 개수: {}개", keyword, allFeeds.size());
             
-            // 4. Flask 서버로 요청 전송
+            // 4. Flask 서버로 요청 전송 (v6 엔드포인트 - Hybrid 3:7)
             FlaskSearchResponse response = webClient.post()
-                .uri(flaskServerUrl + "/search")
+                .uri(flaskServerUrl + "/search/v6")
                 .bodyValue(request)
                 .retrieve()
                 .onStatus(status -> status.is4xxClientError() || status.is5xxServerError(),
                     clientResponse -> {
-                        log.error("[v3 search] Flask 서버 오류 응답: {}", clientResponse.statusCode());
+                        log.error("[v6 search] Flask 서버 오류 응답: {}", clientResponse.statusCode());
                         return Mono.error(new RuntimeException("Flask 서버 오류: " + clientResponse.statusCode()));
                     })
                 .bodyToMono(FlaskSearchResponse.class)
@@ -128,11 +128,11 @@ public class FeedService {
                 .block();
             
             if (response == null || response.getResults() == null) {
-                log.warn("[v3 search] Flask 서버 응답이 null이거나 결과가 없음");
+                log.warn("[v6 search] Flask 서버 응답이 null이거나 결과가 없음");
                 return new PageImpl<>(List.of(), pageable, 0);
             }
             
-            log.info("[v3 search] Flask 서버 응답 받음: {}개 결과", response.getResults().size());
+            log.info("[v6 search] Flask 서버 응답 받음: {}개 결과", response.getResults().size());
             
             // 5. Flask 서버 결과를 Spring에서 페이징 처리
             List<FeedDto> allResults = response.getResults();
@@ -143,9 +143,9 @@ public class FeedService {
             return new PageImpl<>(pageContent, pageable, allResults.size());
             
         } catch (Exception e) {
-            log.error("[v3 search] Flask 서버 통신 중 오류 발생", e);
+            log.error("[v6 search] Flask 서버 통신 중 오류 발생", e);
             // 오류 발생 시 전체 조회로 fallback
-            log.info("[v3 search] 오류로 인해 전체 조회로 fallback");
+            log.info("[v6 search] 오류로 인해 전체 조회로 fallback");
             return searchFeedRecordsV2(keyword, pageable);
         }
     }

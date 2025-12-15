@@ -21,6 +21,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @Slf4j
@@ -87,12 +88,31 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.success(authResponse));
     }
 
+    @Operation(
+            summary = "애플 로그인",
+            description = "애플 계정을 통해 로그인합니다.",
+            responses = {
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "200",
+                            description = "로그인 성공",
+                            content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = AuthResponse.class))
+                    ),
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "400",
+                            description = "잘못된 요청"
+                    ),
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "401",
+                            description = "인증 실패"
+                    )
+            }
+    )
     @GetMapping(value = "/apple", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<ApiResponse<AuthResponse>> loginApple(
-            @RequestHeader(name = "Authorization") String token) {
-        
+            @RequestHeader(name = "Authorization") String token,
+            @RequestParam(name = "name") String name) {
         String accessToken = token.replace("Bearer ", "");
-        AuthResponse authResponse = authService.loginWithApple(accessToken);
+        AuthResponse authResponse = authService.loginWithApple(accessToken, name);
         return ResponseEntity.ok(ApiResponse.success(authResponse));
     }
     /**
