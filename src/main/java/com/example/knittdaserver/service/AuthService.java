@@ -63,7 +63,7 @@ public class AuthService {
     }
 
     @Transactional
-    public AuthResponse loginWithApple(String appleAccessToken) {
+    public AuthResponse loginWithApple(String appleAccessToken, String name) {
         UserDto userDto = getAppleUserInfo(appleAccessToken);
         Optional<User> userOptional = userRepository.findByAppleId(userDto.getAppleId());
         User user;
@@ -73,7 +73,7 @@ public class AuthService {
         } else {
             user = User.builder()
                     .appleId(userDto.getAppleId())
-                    .nickname(userDto.getNickname())
+                    .nickname(name.isBlank() ? null : name)
                     .email(userDto.getEmail())
                     .profileImageUrl(userDto.getProfileImageUrl())
                     .build();
@@ -96,7 +96,6 @@ public class AuthService {
                 .kakaoId(kakaoId)
                 .nickname("admin")
                 .email("admin@admin.com")
-                .profileImageUrl("https://example.com/profile.jpg")
                 .build()
         );
         userRepository.save(user);
