@@ -13,10 +13,10 @@ import java.util.List;
 @Getter
 @Builder
 @AllArgsConstructor
-@RequiredArgsConstructor
+@NoArgsConstructor
 @ToString
 public class User {
-@Id
+    @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
@@ -29,11 +29,22 @@ public class User {
     @Column(nullable = true)
     private String email;
 
+    @Column(name = "name", nullable = true)
+    private String name;
+
     @Column(nullable = true)
     private String nickname;
 
     @Column(name="profile_image_url", nullable = true)
     private String profileImageUrl;
+
+    public void setNickname(String nickname) {
+        this.nickname = nickname;
+    }
+
+    public void setProfileImageUrl(String profileImageUrl) {
+        this.profileImageUrl = profileImageUrl;
+    }
 
     @CreationTimestamp
     @Column(name="created_at", nullable = true, updatable = false)

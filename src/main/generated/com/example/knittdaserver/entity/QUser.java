@@ -30,6 +30,8 @@ public class QUser extends EntityPathBase<User> {
 
     public final NumberPath<Long> kakaoId = createNumber("kakaoId", Long.class);
 
+    public final StringPath name = createString("name");
+
     public final StringPath nickname = createString("nickname");
 
     public final StringPath profileImageUrl = createString("profileImageUrl");

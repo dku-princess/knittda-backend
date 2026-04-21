@@ -2,6 +2,7 @@ package com.example.knittdaserver.controller;
 
 import com.example.knittdaserver.common.response.ApiResponse;
 import com.example.knittdaserver.dto.CreateProjectRequest;
+import com.example.knittdaserver.dto.ProjectArticlePreviewPayload;
 import com.example.knittdaserver.dto.ProjectDto;
 import com.example.knittdaserver.dto.ProjectPreviewResponse;
 import com.example.knittdaserver.dto.UpdateProjectRequest;
@@ -59,9 +60,34 @@ public class ProjectController {
         ProjectDto projectDto = projectService.createProject(token, request, file);
         return ResponseEntity.ok(ApiResponse.success(projectDto));
     }
+    
+    @Operation(summary = "프로젝트 미리보기 조회", description = "프로젝트 미리보기를 조회합니다.")
+    @GetMapping("/previews")
+    public ResponseEntity<ApiResponse<List<ProjectPreviewResponse>>> getProjectPreviews(){
+        List<ProjectPreviewResponse> previews = projectService.getProjectPreviews();
+        return ResponseEntity.ok(ApiResponse.success(previews));
+    }
+
+    @Operation(summary = "아티클 Project Section용 프로젝트 미리보기", description = "project_id 목록(쉼표 구분, 1개 이상)으로 아티클 내 노출용 최소 정보를 조회합니다. data.num은 반환된 프로젝트 개수이며 0이면 섹션을 표시하지 않으면 됩니다. 존재하는 프로젝트만 data.projects에 담으며 순서는 요청 ids와 동일합니다. 없는 id는 생략되며, 누락은 서버 로그(article-previews WARN)로 확인할 수 있습니다.")
+    @GetMapping("/article-previews")
+    public ResponseEntity<ApiResponse<ProjectArticlePreviewPayload>> getProjectArticlePreviews(
+            @RequestParam(name = "ids") String ids
+    ) {
+        ProjectArticlePreviewPayload payload = projectService.getProjectArticlePreviews(ids);
+        return ResponseEntity.ok(ApiResponse.success(payload));
+    }
 
     @Operation(summary = "내 프로젝트 목록 조회", description = "로그인한 사용자의 프로젝트 목록을 조회합니다.")
     @GetMapping("/")
+    public ResponseEntity<ApiResponse<List<ProjectDto>>> getProjects(
+            @RequestHeader(name = "Authorization") String token
+    ) {
+        List<ProjectDto> projects = projectService.getMyProjects(token);
+        return ResponseEntity.ok(ApiResponse.success(projects));
+    }
+
+    @Operation(summary = "내 프로젝트 목록 조회", description = "로그인한 사용자의 프로젝트 목록을 조회합니다.")
+    @GetMapping("/my")
     public ResponseEntity<ApiResponse<List<ProjectDto>>> getMyProjects(
             @RequestHeader(name = "Authorization") String token
     ) {
@@ -69,8 +95,7 @@ public class ProjectController {
         return ResponseEntity.ok(ApiResponse.success(projects));
     }
 
-
-    @Operation(summary = "프로젝트 단건 조회", description = "특정 프로젝트의 상세 정보를 조회합니다.")
+    @Operation(summary = "내 프로젝트 단건 조회", description = "로그인한 사용자의 특정 프로젝트의 상세 정보를 조회합니다.")
     @GetMapping("/my/{projectId}")
     public ResponseEntity<ApiResponse<ProjectDto>> getMyProject(
             @RequestHeader(name = "Authorization") String token,
@@ -79,7 +104,6 @@ public class ProjectController {
         ProjectDto project = projectService.getMyProjectById(token, projectId);
         return ResponseEntity.ok(ApiResponse.success(project));
     }
-
 
     @Operation(summary = "프로젝트 단건 조회", description = "특정 프로젝트의 상세 정보를 조회합니다.")
     @GetMapping("/{projectId}")
@@ -118,10 +142,4 @@ public class ProjectController {
         return ResponseEntity.ok(ApiResponse.success(null));
     }
 
-    @Operation(summary = "프로젝트 미리보기 조회", description = "프로젝트 미리보기를 조회합니다.")
-    @GetMapping("/previews")
-    public ResponseEntity<ApiResponse<List<ProjectPreviewResponse>>> getProjectPreviews(){
-        List<ProjectPreviewResponse> previews = projectService.getProjectPreviews();
-        return ResponseEntity.ok(ApiResponse.success(previews));
-    }
 }

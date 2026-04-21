@@ -14,6 +14,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.example.knittdaserver.entity.Project;
 import com.example.knittdaserver.entity.ProjectStatus;
@@ -61,6 +62,16 @@ public class QuestionService {
         7, this::generateV7Prompt,
         8, this::generateV8Prompt
     );
+
+    /**
+     * 프로젝트 ID로 질문 생성. 트랜잭션 내에서 Project를 로드하므로 records 지연 로딩이 정상 동작합니다.
+     */
+    @Transactional(readOnly = true)
+    public String generateSingleQuestion(Long projectId, Integer version) {
+        Project project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new EntityNotFoundException("해당 프로젝트가 존재하지 않습니다."));
+        return generateSingleQuestion(project, version);
+    }
 
     public String generateSingleQuestion(Project project, Integer version) {
         // 기본값은 v1으로 설정
@@ -749,6 +760,7 @@ public class QuestionService {
     /**
      * 프로젝트 ID를 기반으로 모든 버전의 질문과 프로젝트 정보를 조회
      */
+    @Transactional(readOnly = true)
     public QuestionResponse getAllVersionsQuestions(Long projectId) {
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new EntityNotFoundException("해당 프로젝트가 존재하지 않습니다."));
