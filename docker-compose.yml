@@ -8,12 +8,11 @@ services:
     restart: always
     volumes:
       - ./logs:/app/logs
-      - ./mysql-data:/var/lib/mysql
     environment:
-      - SPRING_PROFILES_ACTIVE=prod
-      - SPRING_DATASOURCE_URL=jdbc:mysql://localhost:3306/knittda-db
-      - SPRING_DATASOURCE_USERNAME=root
-      - SPRING_DATASOURCE_PASSWORD=root
+      SPRING_PROFILES_ACTIVE: staging
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/knittda-db
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: root
     depends_on:
       - mysql
 
@@ -27,4 +26,4 @@ services:
     volumes:
       - ./mysql-data:/var/lib/mysql
       - ./mysql-init:/docker-entrypoint-initdb.d
-    restart: always 
+    restart: always

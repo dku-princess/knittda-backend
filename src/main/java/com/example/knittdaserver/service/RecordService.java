@@ -19,10 +19,14 @@ import com.theokanning.openai.service.OpenAiService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
 
 import jakarta.transaction.Transactional;
+import java.time.Duration;
 import java.util.List;
 
 @Slf4j
@@ -38,6 +42,13 @@ public class RecordService {
     private final ProjectService projectService;
     private final OpenAiService openAiService;
     private final ObjectMapper objectMapper;
+    
+    @Value("${flask.server.url}")
+    private String flaskServerUrl;
+    
+    private final WebClient webClient = WebClient.builder()
+        .codecs(configurer -> configurer.defaultCodecs().maxInMemorySize(10 * 1024 * 1024)) // 10MB
+        .build();
 
     /**
      * 새로운 Record를 생성하고 임베딩을 자동으로 생성합니다.
@@ -48,14 +59,6 @@ public class RecordService {
         Project project = projectRepository.findById(request.getProjectId())
                 .orElseThrow(() -> new CustomException(ApiResponseCode.PROJECT_NOT_FOUND));
         projectService.validateOwnership(project, user);
-
-
-        log.info("[250805 수정] Record 생성 시작 - question: {}, comment: {}, user: {}, commentLength: {}, imageCount: {}", 
-                request.getQuestion(), 
-                request.getComment(),
-                user.getNickname(),
-                request.getComment() != null ? request.getComment().length() : 0, 
-                files != null ? files.size() : 0);
         
         // 1. record에 모든 값 세팅
         Record record = Record.builder()
@@ -139,8 +142,55 @@ public class RecordService {
         User user = authService.getUserFromJwt(token);
         Record record = recordRepository.findById(recordId).orElseThrow(() -> new CustomException(ApiResponseCode.RECORD_NOT_FOUND));
         if (!record.getProject().isOwnedBy(user.getId())) {throw new CustomException(ApiResponseCode.FORBIDDEN_ACCESS);}
+        
+        // 1. S3 이미지 삭제
         record.getImages().forEach(image -> s3Service.deleteFile(image.getImageUrl()));
+        
+        // 2. DB에서 Record 삭제
         recordRepository.deleteById(recordId);
+        log.info("[RecordService] Record 삭제 완료 - recordId: {}", recordId);
+        
+        // 3. Elasticsearch 동기화: Flask 서버에 삭제 요청 전송
+        deleteRecordFromElasticsearch(recordId);
+    }
+    
+    /**
+     * Elasticsearch에서 Record 문서를 삭제합니다.
+     * Flask 서버로 DELETE 요청을 전송하여 Elasticsearch 인덱스에서 제거합니다.
+     * 
+     * @param recordId 삭제할 Record ID
+     */
+    private void deleteRecordFromElasticsearch(Long recordId) {
+        try {
+            log.info("[RecordService] Elasticsearch 동기화 시작 - recordId: {}", recordId);
+            
+            webClient.delete()
+                .uri(flaskServerUrl + "/index/feeds/" + recordId)
+                .retrieve()
+                .onStatus(status -> status.is4xxClientError() || status.is5xxServerError(),
+                    clientResponse -> {
+                        log.warn("[RecordService] Elasticsearch 삭제 실패 - recordId: {}, status: {}", 
+                            recordId, clientResponse.statusCode());
+                        return Mono.error(new RuntimeException("Elasticsearch 삭제 실패: " + clientResponse.statusCode()));
+                    })
+                .bodyToMono(Void.class)
+                .timeout(Duration.ofSeconds(10))
+                .doOnSuccess(result -> {
+                    log.info("[RecordService] ✅ Elasticsearch 동기화 완료 - recordId: {}", recordId);
+                })
+                .doOnError(error -> {
+                    log.error("[RecordService] ❌ Elasticsearch 동기화 실패 - recordId: {}, error: {}", 
+                        recordId, error.getMessage());
+                    // ES 삭제 실패해도 DB 삭제는 이미 완료되었으므로 예외를 전파하지 않음
+                    // 로그만 남기고 서비스는 정상 완료로 처리
+                })
+                .block();
+                
+        } catch (Exception e) {
+            // ES 삭제 실패는 로그만 남기고 서비스 실패로 처리하지 않음
+            log.error("[RecordService] ❌ Elasticsearch 동기화 중 예외 발생 - recordId: {}, error: {}", 
+                recordId, e.getMessage(), e);
+        }
     }
 
 
