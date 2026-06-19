@@ -9,6 +9,10 @@ import com.example.knittdaserver.dto.UpdateProjectRequest;
 import com.example.knittdaserver.service.ProjectService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.sentry.Sentry;
+import jakarta.annotation.PostConstruct;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -32,8 +36,23 @@ import org.springframework.web.multipart.MultipartFile;
 public class ProjectController {
 
     private final ProjectService projectService;
+    private final MeterRegistry meterRegistry;
     @Autowired
     private ObjectMapper objectMapper;
+
+    // v1 deprecated endpoint 호출 카운터 (Micrometer)
+    private Counter v1PreviewsCounter;
+
+    @PostConstruct
+    void initMetrics() {
+        // v2 와 동일한 메트릭 이름으로 통일하고 version 라벨로 분리 — PromQL group by 용이.
+        this.v1PreviewsCounter = Counter.builder("api.previews.calls")
+                .description("project previews endpoint invocations")
+                .tag("endpoint", "GET /api/v1/projects/previews")
+                .tag("version", "v1")
+                .tag("deprecated", "true")
+                .register(meterRegistry);
+    }
 
     @Operation(summary = "프로젝트 생성", description = "새로운 프로젝트를 생성합니다.")
     @PostMapping(value = "/", consumes = MediaType.MULTIPART_FORM_DATA_VALUE )
@@ -61,10 +80,33 @@ public class ProjectController {
         return ResponseEntity.ok(ApiResponse.success(projectDto));
     }
     
-    @Operation(summary = "프로젝트 미리보기 조회", description = "프로젝트 미리보기를 조회합니다.")
+    // DEPRECATED: 2026-06-19 v2 출시와 함께 레거시화. 제거 검토 목표 2026-12-19 (+6개월).
+    // 제거 조건(OR): (A) v2 출시 후 6개월 경과, (B) 구버전 MAU < 1%, (C) v1 일평균 호출 < 500.
+    // 호출량은 Sentry 트랜잭션 태그 api.deprecated:true 로 측정.
+    @Operation(summary = "[v1, 레거시] 프로젝트 미리보기 조회",
+            description = "구버전 클라이언트 호환용. 페이지네이션 없이 최신 순으로 최대 " +
+                    "100건까지만 반환합니다. 신규 클라이언트는 GET /api/v2/projects/previews 사용.")
     @GetMapping("/previews")
-    public ResponseEntity<ApiResponse<List<ProjectPreviewResponse>>> getProjectPreviews(){
-        List<ProjectPreviewResponse> previews = projectService.getProjectPreviews();
+    public ResponseEntity<ApiResponse<List<ProjectPreviewResponse>>> getProjectPreviews(
+            @RequestHeader(name = "User-Agent", required = false) String userAgent,
+            @RequestHeader(name = "X-App-Version", required = false) String appVersion
+    ){
+        // [DEPRECATION TRACKING]
+        // 1) Micrometer Counter — 샘플링 없는 정확한 카운트 (Prometheus/Grafana 에서 조회)
+        v1PreviewsCounter.increment();
+        // 2) Sentry 태깅 — Discover/Insights 에서 호출 컨텍스트(트레이스/사용자) 분석용
+        Sentry.configureScope(scope -> {
+            scope.setTag("api.deprecated", "true");
+            scope.setTag("api.version", "v1");
+            scope.setTag("api.endpoint", "GET /api/v1/projects/previews");
+            if (appVersion != null && !appVersion.isBlank()) {
+                scope.setTag("client.app_version", appVersion);
+            }
+        });
+        log.warn("[deprecated-api] GET /api/v1/projects/previews called. userAgent={}, appVersion={}",
+                userAgent, appVersion);
+
+        List<ProjectPreviewResponse> previews = projectService.getProjectPreviewsLegacy();
         return ResponseEntity.ok(ApiResponse.success(previews));
     }
 
