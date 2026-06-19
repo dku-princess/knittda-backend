@@ -55,4 +55,17 @@ public class RecordResponse {
                 )
                 .build();
     }
+
+    // 사전 일괄 조회한 images 를 주입하는 오버로드. record.getImages() lazy load 를 회피한다.
+    public static RecordResponse from(Record record, List<ImageDto> images) {
+        return RecordResponse.builder()
+                .id(record.getId())
+                .projectId(record.getProject().getId())
+                .recordStatus(record.getRecordStatus())
+                .tags(record.getTags() != null ? record.getTags() : new ArrayList<>())
+                .comment(record.getComment())
+                .createdAt(record.getCreatedAt())
+                .images(images != null ? images : new ArrayList<>())
+                .build();
+    }
 }

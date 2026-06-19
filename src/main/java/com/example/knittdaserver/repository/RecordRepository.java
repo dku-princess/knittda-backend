@@ -9,6 +9,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -33,12 +34,25 @@ public interface RecordRepository extends JpaRepository<Record, Long> {
             LocalDateTime endOfWeek
     );
 
-    @EntityGraph(attributePaths = {"project", "project.user", "images", "project.design"})
+    // HHH90003004 방지: 컬렉션(images)을 Pageable 과 함께 fetch 하면 메모리 페이징이 발생하므로
+    // 메인 쿼리에서는 to-one 연관(project, user, design)만 fetch 한다.
+    // images 컬렉션은 FeedService 에서 recordId IN 절로 일괄 조회한다.
+    @EntityGraph(attributePaths = {"project", "project.user", "project.design"})
     Page<Record> findAll(Pageable pageable);
 
     @EntityGraph(attributePaths = {"project", "project.user", "project.design"})
     @Query("SELECT DISTINCT r FROM Record r")
     List<Record> findAllWithAssociations();
 
+    // N+1 방지: 프로젝트별 record 개수를 한 번의 집계 쿼리로 조회.
+    // mapToPreviews 에서 project.getRecords().size() 대신 사용.
+    @Query("SELECT r.project.id AS projectId, COUNT(r.id) AS cnt " +
+            "FROM Record r WHERE r.project.id IN :projectIds " +
+            "GROUP BY r.project.id")
+    List<RecordCountProjection> countByProjectIds(@Param("projectIds") Collection<Long> projectIds);
 
+    interface RecordCountProjection {
+        Long getProjectId();
+        Long getCnt();
+    }
 }

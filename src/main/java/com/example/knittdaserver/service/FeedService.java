@@ -8,10 +8,12 @@ import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
 import com.example.knittdaserver.dto.FeedDto;
+import com.example.knittdaserver.dto.ImageDto;
 import com.example.knittdaserver.dto.RecordResponse;
 import com.example.knittdaserver.dto.FlaskSearchRequest;
 import com.example.knittdaserver.dto.FlaskSearchResponse;
 import com.example.knittdaserver.dto.SearchResponse;
+import com.example.knittdaserver.repository.ImageRepository;
 import com.example.knittdaserver.repository.RecordRepository;
 import com.example.knittdaserver.entity.Record;
 
@@ -19,11 +21,13 @@ import lombok.RequiredArgsConstructor;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Pageable;
+import org.springframework.transaction.annotation.Transactional;
 
 
 @Service
@@ -31,6 +35,7 @@ import org.springframework.data.domain.Pageable;
 public class FeedService {
     private static final Logger log = LoggerFactory.getLogger(FeedService.class);
     private final RecordRepository recordRepository;
+    private final ImageRepository imageRepository;
     private final com.example.knittdaserver.service.SearchLogService searchLogService;
     
     @Value("${flask.server.url}")
@@ -50,17 +55,44 @@ public class FeedService {
      * @param pageable 페이징 정보
      * @return FeedDto의 Page
      */
+    @Transactional(readOnly = true)
     public Page<FeedDto> getFeedRecords(org.springframework.data.domain.Pageable pageable) {
-        return recordRepository.findAll(pageable)
-            .map(record -> FeedDto.builder()
-                .userName(record.getProject().getUser().getNickname())
-                .profileImageUrl(record.getProject().getUser().getProfileImageUrl())
-                .projectName(record.getProject().getNickname())
-                .projectId(record.getProject().getId())
-                .designTitle(record.getProject().getDesign().getTitle())
-                .designer(record.getProject().getDesign().getDesigner())
-                .record(RecordResponse.from(record))
-                .build());
+        // 1. record 페이지를 DB 페이징으로 조회 (to-one 연관만 fetch, 컬렉션 미포함 → HHH90003004 방지)
+        Page<Record> recordPage = recordRepository.findAll(pageable);
+
+        // 2. 페이지 내 record 들의 이미지를 단일 IN 절 쿼리로 일괄 조회 (N+1 방지)
+        Map<Long, List<ImageDto>> imagesByRecordId = loadImagesByRecordId(recordPage.getContent());
+
+        // 3. 사전 조회한 이미지를 주입하여 FeedDto 로 변환 (record.getImages() lazy load 미발생)
+        return recordPage.map(record -> FeedDto.builder()
+            .userName(record.getProject().getUser().getNickname())
+            .profileImageUrl(record.getProject().getUser().getProfileImageUrl())
+            .projectName(record.getProject().getNickname())
+            .projectId(record.getProject().getId())
+            .designTitle(record.getProject().getDesign().getTitle())
+            .designer(record.getProject().getDesign().getDesigner())
+            .record(RecordResponse.from(record, imagesByRecordId.getOrDefault(record.getId(), List.of())))
+            .build());
+    }
+
+    /**
+     * 주어진 record 들의 이미지를 단일 쿼리로 조회하여 recordId 기준 Map 으로 그룹핑합니다.
+     * @param records 이미지를 조회할 record 목록
+     * @return recordId → ImageDto 리스트 Map
+     */
+    private Map<Long, List<ImageDto>> loadImagesByRecordId(List<Record> records) {
+        if (records.isEmpty()) {
+            return Map.of();
+        }
+
+        List<Long> recordIds = records.stream()
+            .map(Record::getId)
+            .collect(Collectors.toList());
+
+        return imageRepository.findByRecordIdIn(recordIds).stream()
+            .collect(Collectors.groupingBy(
+                image -> image.getRecord().getId(),
+                Collectors.mapping(ImageDto::from, Collectors.toList())));
     }
 
     /**
