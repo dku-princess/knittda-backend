@@ -32,6 +32,9 @@ public class UpdateProjectRequest {
     private String description;
     private Boolean visible;
 
+    // 기본 이미지로 변경 시 전달 (file 미첨부 시에만 사용). null 이면 썸네일 변경 없음.
+    private Long defaultThumbnailId;
+
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
     private LocalDate startDate;
 

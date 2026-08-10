@@ -25,6 +25,9 @@ public class CreateProjectRequest {
     // 프로젝트 공개 여부
     private Boolean visible;
 
+    // 기본 이미지 선택 시 전달 (file 미첨부 시에만 사용). null 이면 기본 이미지 미선택.
+    private Long defaultThumbnailId;
+
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
     private LocalDate startDate;
 
