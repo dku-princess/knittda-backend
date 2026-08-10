@@ -1,5 +1,6 @@
 package com.example.knittdaserver;
 
+import com.example.knittdaserver.common.metrics.ExternalCallMetrics;
 import com.example.knittdaserver.entity.Record;
 import com.example.knittdaserver.repository.RecordRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -22,6 +23,7 @@ public class RecordEmbeddingInitializer implements CommandLineRunner {
     private final RecordRepository recordRepository;
     private final OpenAiService openAiService;
     private final ObjectMapper objectMapper;
+    private final ExternalCallMetrics externalCallMetrics;
 
     @Override
     @Transactional
@@ -79,7 +81,8 @@ public class RecordEmbeddingInitializer implements CommandLineRunner {
                 .model("text-embedding-ada-002")
                 .input(List.of(text))
                 .build();
-        EmbeddingResult result = openAiService.createEmbeddings(request);
+        EmbeddingResult result = externalCallMetrics.record("openai", "embedding",
+                () -> openAiService.createEmbeddings(request));
         List<Double> list = result.getData().get(0).getEmbedding();
         float[] embedding = new float[list.size()];
         for (int i = 0; i < list.size(); i++) {
