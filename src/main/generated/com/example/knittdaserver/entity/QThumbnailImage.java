@@ -28,6 +28,8 @@ public class QThumbnailImage extends EntityPathBase<ThumbnailImage> {
 
     public final StringPath imageUrl = createString("imageUrl");
 
+    public final BooleanPath isDefault = createBoolean("isDefault");
+
     public final QProject project;
 
     public QThumbnailImage(String variable) {
