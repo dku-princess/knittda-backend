@@ -5,6 +5,7 @@ import com.example.knittdaserver.common.response.CustomException;
 import com.example.knittdaserver.dto.*;
 import com.example.knittdaserver.entity.*;
 import com.example.knittdaserver.entity.Record;
+import com.example.knittdaserver.repository.DefaultProjectThumbnailRepository;
 import com.example.knittdaserver.repository.DesignRepository;
 import com.example.knittdaserver.repository.ImageRepository;
 import com.example.knittdaserver.repository.ProjectRepository;
@@ -37,6 +38,7 @@ public class ProjectService {
     private final ImageRepository imageRepository;
     private final RecordRepository recordRepository;
     private final ThumbnailImageRepository thumbnailImageRepository;
+    private final DefaultProjectThumbnailRepository defaultProjectThumbnailRepository;
     private final AuthService authService;
     private final S3Service s3Service;
     private final FileUploadService fileUploadService;
@@ -75,37 +77,67 @@ public class ProjectService {
 
         projectRepository.save(project);
 
-        // 썸네일 이미지 업로드
-        if (file != null) {
-            log.info("[ProjectService] 프로젝트 생성 - 썸네일 이미지 업로드 시작 - 프로젝트 ID: {}, 파일명: {}, 크기: {} bytes", 
-                    project.getId(), file.getOriginalFilename(), file.getSize());
-            try {
-                String imageUrl = fileUploadService.uploadImageAsWebp(file);
-                log.info("[ProjectService] 프로젝트 생성 - 썸네일 이미지 업로드 완료 - 프로젝트 ID: {}, URL: {}", 
-                        project.getId(), imageUrl);
-                
-                ThumbnailImage thumbnailImage = ThumbnailImage.builder()
-                        .imageUrl(imageUrl)
-                        .build();
-                // ThumbnailImage를 먼저 저장
-                thumbnailImage = thumbnailImageRepository.save(thumbnailImage);
-                project.setThumbnail(thumbnailImage);
-                log.info("[ProjectService] 프로젝트 생성 - 썸네일 이미지 저장 완료 - 프로젝트 ID: {}, 썸네일 ID: {}", 
-                        project.getId(), thumbnailImage.getId());
-            } catch (IOException e) {
-                log.error("[ProjectService] 프로젝트 생성 - 썸네일 이미지 업로드 실패 - 프로젝트 ID: {}, 파일명: {}, 크기: {} bytes, 에러: {}", 
-                        project.getId(), file.getOriginalFilename(), file.getSize(), e.getMessage(), e);
-                // 이미지 업로드 실패해도 프로젝트는 생성되도록 함 (선택적 필드)
-                // 필요시 예외를 다시 던져서 프로젝트 생성 자체를 실패시킬 수 있음
-            } catch (Exception e) {
-                log.error("[ProjectService] 프로젝트 생성 - 썸네일 이미지 업로드 중 예상치 못한 에러 - 프로젝트 ID: {}, 파일명: {}, 에러: {}", 
-                        project.getId(), file.getOriginalFilename(), e.getMessage(), e);
-            }
+        // 썸네일 결정: ① file 업로드 ② defaultThumbnailId 선택 ③ 둘 다 없으면 기본 이미지로 폴백
+        // → 모든 신규 작품은 항상 썸네일을 가진다 (응답 구조 일관성 확보)
+        ThumbnailSource source = resolveThumbnailSource(file, request.getDefaultThumbnailId());
+        if (source == null) {
+            source = findFallbackThumbnailSource();
+        }
+        if (source != null) {
+            ThumbnailImage thumbnailImage = thumbnailImageRepository.save(
+                    ThumbnailImage.builder()
+                            .imageUrl(source.imageUrl())
+                            .isDefault(source.isDefault())
+                            .build());
+            project.setThumbnail(thumbnailImage);
+            log.info("[ProjectService] 프로젝트 생성 - 썸네일 저장 완료 - 프로젝트 ID: {}, 썸네일 ID: {}, 기본이미지여부: {}",
+                    project.getId(), thumbnailImage.getId(), thumbnailImage.isDefault());
         } else {
-            log.info("[ProjectService] 프로젝트 생성 - 썸네일 이미지 없음 - 프로젝트 ID: {}", project.getId());
+            log.warn("[ProjectService] 프로젝트 생성 - 지정/기본 썸네일 모두 없음 - 프로젝트 ID: {}", project.getId());
         }
 
         return ProjectDto.from(projectRepository.save(project));
+    }
+
+    /** 썸네일 원본 정보(URL + 기본이미지 여부). */
+    private record ThumbnailSource(String imageUrl, boolean isDefault) {}
+
+    /**
+     * 요청으로부터 썸네일 소스를 결정한다.
+     * ① file 이 있으면 업로드 후 사용자 썸네일(isDefault=false)
+     * ② file 이 없고 defaultThumbnailId 가 있으면 기본 이미지 소스(isDefault=true)
+     * ③ 둘 다 없으면 null (호출부에서 정책에 맞게 처리)
+     */
+    private ThumbnailSource resolveThumbnailSource(MultipartFile file, Long defaultThumbnailId) {
+        if (file != null) {
+            try {
+                String imageUrl = fileUploadService.uploadImageAsWebp(file);
+                log.info("[ProjectService] 썸네일 업로드 완료 - URL: {}", imageUrl);
+                return new ThumbnailSource(imageUrl, false);
+            } catch (IOException e) {
+                log.error("[ProjectService] 썸네일 업로드 실패 - 파일명: {}, 에러: {}",
+                        file.getOriginalFilename(), e.getMessage(), e);
+                throw new CustomException(ApiResponseCode.IMAGE_UPLOAD_FAILED);
+            }
+        }
+
+        if (defaultThumbnailId != null) {
+            DefaultProjectThumbnail defaultThumbnail = defaultProjectThumbnailRepository
+                    .findByIdAndActiveTrue(defaultThumbnailId)
+                    .orElseThrow(() -> new CustomException(ApiResponseCode.DEFAULT_THUMBNAIL_NOT_FOUND));
+            return new ThumbnailSource(defaultThumbnail.getImageUrl(), true);
+        }
+
+        return null;
+    }
+
+    /** 생성 시 아무 썸네일도 지정되지 않았을 때 사용할 첫 번째 활성 기본 이미지. */
+    private ThumbnailSource findFallbackThumbnailSource() {
+        return defaultProjectThumbnailRepository.findByActiveTrueOrderBySortOrderAsc()
+                .stream()
+                .findFirst()
+                .map(d -> new ThumbnailSource(d.getImageUrl(), true))
+                .orElse(null);
     }
 
     /**
@@ -163,7 +195,7 @@ public class ProjectService {
         updateDesign(project, request);
 
         // 썸네일 이미지 업데이트
-        updateImage(project, file);
+        updateImage(project, file, request.getDefaultThumbnailId());
 
         // 프로젝트 정보 업데이트
         project.updateFromRequest(request);
@@ -196,68 +228,62 @@ public class ProjectService {
 
 
     @Transactional
-    private void updateImage(Project project, MultipartFile file) {
-        if (file == null) {
-            log.debug("[ProjectService] 프로젝트 수정 - 이미지 파일 없음, 업데이트 건너뜀 - 프로젝트 ID: {}", 
+    private void updateImage(Project project, MultipartFile file, Long defaultThumbnailId) {
+        // 우선순위: ① file 업로드 ② defaultThumbnailId 기본 이미지 ③ 둘 다 없으면 기존 유지
+        ThumbnailSource source = resolveThumbnailSource(file, defaultThumbnailId);
+        if (source == null) {
+            log.debug("[ProjectService] 프로젝트 수정 - 썸네일 변경 요청 없음, 기존 유지 - 프로젝트 ID: {}",
                     project.getId());
             return;
         }
 
-        log.info("[ProjectService] 프로젝트 수정 - 썸네일 이미지 업데이트 시작 - 프로젝트 ID: {}, 파일명: {}, 크기: {} bytes", 
-                project.getId(), file.getOriginalFilename(), file.getSize());
+        ThumbnailImage thumbnailImage = project.getThumbnail();
 
-        try {
-            String imageUrl = fileUploadService.uploadImageAsWebp(file);
-            log.info("[ProjectService] 프로젝트 수정 - 새 썸네일 이미지 업로드 완료 - 프로젝트 ID: {}, URL: {}", 
-                    project.getId(), imageUrl);
-            
-            ThumbnailImage thumbnailImage = project.getThumbnail();
-
-            if (thumbnailImage == null) {
-                log.info("[ProjectService] 프로젝트 수정 - 새 썸네일 이미지 생성 - 프로젝트 ID: {}", project.getId());
-                thumbnailImage = ThumbnailImage.builder()
-                        .imageUrl(imageUrl)
-                        .build();
-                // 새로운 ThumbnailImage를 저장
-                thumbnailImage = thumbnailImageRepository.save(thumbnailImage);
-                log.info("[ProjectService] 프로젝트 수정 - 새 썸네일 이미지 저장 완료 - 프로젝트 ID: {}, 썸네일 ID: {}", 
-                        project.getId(), thumbnailImage.getId());
-            } else {
-                String prevThumbnailUrl = thumbnailImage.getImageUrl();
-                log.info("[ProjectService] 프로젝트 수정 - 기존 썸네일 이미지 업데이트 - 프로젝트 ID: {}, 기존 URL: {}, 새 URL: {}", 
-                        project.getId(), prevThumbnailUrl, imageUrl);
-                
-                thumbnailImage.setImageUrl(imageUrl);
-                // 기존 ThumbnailImage 업데이트
-                thumbnailImage = thumbnailImageRepository.save(thumbnailImage);
-
-                // S3 삭제는 DB 저장 후, 실패 시 예외 처리
-                if (prevThumbnailUrl != null && !prevThumbnailUrl.isEmpty()) {
-                    try {
-                        log.info("[ProjectService] 프로젝트 수정 - 기존 썸네일 이미지 S3 삭제 시작 - 프로젝트 ID: {}, URL: {}", 
-                                project.getId(), prevThumbnailUrl);
-                        s3Service.deleteFile(prevThumbnailUrl);
-                        log.info("[ProjectService] 프로젝트 수정 - 기존 썸네일 이미지 S3 삭제 완료 - 프로젝트 ID: {}", 
-                                project.getId());
-                    } catch (Exception e) {
-                        log.warn("[ProjectService] 프로젝트 수정 - 기존 썸네일 이미지 S3 삭제 실패 (무시) - 프로젝트 ID: {}, URL: {}, 에러: {}", 
-                                project.getId(), prevThumbnailUrl, e.getMessage(), e);
-                        // S3 삭제 실패해도 프로세스는 계속 진행
-                    }
-                }
-            }
+        // 기존 썸네일이 없으면 새로 생성
+        if (thumbnailImage == null) {
+            thumbnailImage = thumbnailImageRepository.save(
+                    ThumbnailImage.builder()
+                            .imageUrl(source.imageUrl())
+                            .isDefault(source.isDefault())
+                            .build());
             project.setThumbnail(thumbnailImage);
-            log.info("[ProjectService] 프로젝트 수정 - 썸네일 이미지 업데이트 완료 - 프로젝트 ID: {}", project.getId());
-
-        } catch (IOException e) {
-            log.error("[ProjectService] 프로젝트 수정 - 썸네일 이미지 업로드 실패 - 프로젝트 ID: {}, 파일명: {}, 크기: {} bytes, 에러: {}", 
-                    project.getId(), file.getOriginalFilename(), file.getSize(), e.getMessage(), e);
-            throw new CustomException(ApiResponseCode.IMAGE_UPLOAD_FAILED);
-        } catch (Exception e) {
-            log.error("[ProjectService] 프로젝트 수정 - 썸네일 이미지 업데이트 중 예상치 못한 에러 - 프로젝트 ID: {}, 파일명: {}, 에러: {}", 
-                    project.getId(), file.getOriginalFilename(), e.getMessage(), e);
-            throw new CustomException(ApiResponseCode.IMAGE_UPLOAD_FAILED);
+            log.info("[ProjectService] 프로젝트 수정 - 새 썸네일 생성 완료 - 프로젝트 ID: {}, 썸네일 ID: {}, 기본이미지여부: {}",
+                    project.getId(), thumbnailImage.getId(), thumbnailImage.isDefault());
+            return;
         }
+
+        // 기존 썸네일 행을 재사용해 갱신
+        String prevUrl = thumbnailImage.getImageUrl();
+        boolean prevIsDefault = thumbnailImage.isDefault();
+        thumbnailImage.setImageUrl(source.imageUrl());
+        thumbnailImage.setDefault(source.isDefault());
+        thumbnailImageRepository.save(thumbnailImage);
+        log.info("[ProjectService] 프로젝트 수정 - 썸네일 교체 완료 - 프로젝트 ID: {}, 기존 URL: {}, 새 URL: {}, 기본이미지여부: {}",
+                project.getId(), prevUrl, source.imageUrl(), source.isDefault());
+
+        // 이전 이미지가 사용자 업로드였고 URL이 실제로 바뀐 경우에만 S3 삭제
+        // (기본 이미지는 여러 프로젝트가 공유하는 공용 자산이므로 삭제 금지)
+        if (!prevIsDefault && prevUrl != null && !prevUrl.isEmpty() && !prevUrl.equals(source.imageUrl())) {
+            try {
+                s3Service.deleteFile(prevUrl);
+                log.info("[ProjectService] 프로젝트 수정 - 기존 썸네일 S3 삭제 완료 - 프로젝트 ID: {}", project.getId());
+            } catch (Exception e) {
+                log.warn("[ProjectService] 프로젝트 수정 - 기존 썸네일 S3 삭제 실패 (무시) - 프로젝트 ID: {}, URL: {}, 에러: {}",
+                        project.getId(), prevUrl, e.getMessage(), e);
+                // S3 삭제 실패해도 프로세스는 계속 진행
+            }
+        }
+    }
+
+    /**
+     * 활성화된 기본 이미지 목록 조회 (FE 선택 화면용).
+     */
+    @Transactional(readOnly = true)
+    public List<DefaultProjectThumbnailResponse> getDefaultThumbnails() {
+        return defaultProjectThumbnailRepository.findByActiveTrueOrderBySortOrderAsc()
+                .stream()
+                .map(DefaultProjectThumbnailResponse::from)
+                .toList();
     }
 
     /**

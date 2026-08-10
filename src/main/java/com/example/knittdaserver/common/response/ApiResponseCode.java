@@ -21,6 +21,7 @@ public enum ApiResponseCode {
 
     // 프로젝트 관련
     PROJECT_NOT_FOUND("P404", "프로젝트를 찾을 수 없습니다", HttpStatus.NOT_FOUND),
+    DEFAULT_THUMBNAIL_NOT_FOUND("P405", "선택한 기본 이미지를 찾을 수 없습니다", HttpStatus.BAD_REQUEST),
 
     // 기록 관련
     RECORD_NOT_FOUND("R404", "기록을 찾을 수 없습니다", HttpStatus.NOT_FOUND),

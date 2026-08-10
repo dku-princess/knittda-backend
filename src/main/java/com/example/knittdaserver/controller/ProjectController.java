@@ -2,6 +2,7 @@ package com.example.knittdaserver.controller;
 
 import com.example.knittdaserver.common.response.ApiResponse;
 import com.example.knittdaserver.dto.CreateProjectRequest;
+import com.example.knittdaserver.dto.DefaultProjectThumbnailResponse;
 import com.example.knittdaserver.dto.ProjectArticlePreviewPayload;
 import com.example.knittdaserver.dto.ProjectDto;
 import com.example.knittdaserver.dto.ProjectPreviewResponse;
@@ -154,6 +155,13 @@ public class ProjectController {
     ) {
         ProjectDto project = projectService.getProjectById(projectId);
         return ResponseEntity.ok(ApiResponse.success(project));
+    }
+
+    @Operation(summary = "기본 이미지 목록 조회",
+            description = "대표사진 미지정 시 선택할 수 있는 기본 이미지 목록을 노출 순서대로 반환합니다.")
+    @GetMapping("/default-thumbnails")
+    public ResponseEntity<ApiResponse<List<DefaultProjectThumbnailResponse>>> getDefaultThumbnails() {
+        return ResponseEntity.ok(ApiResponse.success(projectService.getDefaultThumbnails()));
     }
 
     @Operation(summary = "프로젝트 수정", description = "특정 프로젝트의 정보를 수정합니다.")
