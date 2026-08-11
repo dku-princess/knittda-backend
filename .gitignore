@@ -37,3 +37,6 @@ mysql-data/
 *.bak
 *.swp
 *~
+
+# Grafana Cloud 토큰(커밋 금지)
+monitoring/prod/gc_token

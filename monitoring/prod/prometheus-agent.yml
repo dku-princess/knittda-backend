@@ -1,0 +1,26 @@
+# ─────────────────────────────────────────────────────────────
+# prod 수집기 설정 (Prometheus agent 모드 — 로컬 저장 없이 스크레이프+remote_write)
+# agent 는 앱들과 같은 compose 네트워크에 있으므로 서비스명+컨테이너 내부 포트(8080)로 스크레이프.
+# 토큰은 .env(GRAFANA_CLOUD_TOKEN) → 컨테이너 entrypoint 가 /tmp/gc_token 으로 기록.
+# ─────────────────────────────────────────────────────────────
+global:
+  scrape_interval: 15s
+  external_labels:
+    cluster: knittda-prod
+
+scrape_configs:
+  - job_name: knittda
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ['app-test:8080']
+        labels: { env: staging, slot: test }
+      - targets: ['app-green:8080']
+        labels: { env: prod, slot: green }
+      - targets: ['app-blue:8080']
+        labels: { env: prod, slot: blue }
+
+remote_write:
+  - url: https://prometheus-prod-49-prod-ap-northeast-0.grafana.net/api/prom/push
+    basic_auth:
+      username: '3459858'
+      password_file: /tmp/gc_token
