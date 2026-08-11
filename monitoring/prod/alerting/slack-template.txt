@@ -1,0 +1,40 @@
+# knittda — Grafana Cloud Slack 알림 메시지 템플릿
+#
+# 배경: 알림 "내용"(summary/description)은 alert rule 의 annotations(knittda-alerts.yml)에서 오고,
+#       "레이아웃"(제목·색·firing/resolved·링크·시각)은 Grafana 기본 Slack 템플릿이 자동 생성한다.
+#       가시성 개선 = 아래 커스텀 템플릿을 Grafana 에 등록해 레이아웃을 직접 지정.
+#
+# 적용:
+#   1) Grafana Cloud → Alerting → Templates → + New template → 이름 `knittda-slack` → 아래 내용 붙여넣기
+#   2) Contact points → grafana-alerts-slack → Edit → Optional settings
+#        - Title     : {{ template "knittda.title" . }}
+#        - Text Body : {{ template "knittda.text" . }}
+#   3) Save → Test 로 확인
+#
+# 비고:
+#   - Slack mrkdwn 문법(*굵게*=별 하나, `코드`, > 인용, <URL|라벨>=링크). critical 은 <!here> 멘션, warning 은 없음.
+#   - env/slot 은 { if .Labels.x } 가드로 감쌈: 집계 룰(sum by (slot))은 env 라벨이 없어 값이 있을 때만 표시(빈 백틱 방지).
+#   - 색상: firing=빨강 / resolved=초록 은 Grafana Slack 연동이 attachment color 로 자동 처리(커스텀 Text Body 를 써도 유지).
+#   - 시각: <!date^epoch^…|fallback> = Slack 네이티브 날짜. 보는 사람의 로컬 타임존으로 자동 변환(한국=KST).
+#          .StartsAt.Unix 로 epoch 를 넘긴다(서버 UTC 로 찍히던 문제 해결).
+#
+# 링크(클릭 이동 — Webhook 방식에선 '버튼'이 아니라 하이퍼링크로 렌더됨):
+#   - Runbook / 대시보드: 각 룰 annotations 에 URL 을 넣으면 링크로 렌더된다(없으면 자동 생략).
+#       예) knittda-alerts.yml 의 각 룰 annotations 에 추가:
+#           runbook_url:   https://tteuda.notion.site/Rule-Book-3b9373d7258680448f5fcf585f44e05a
+#           dashboard_url: https://rubymocha2959.grafana.net/d/knittda-overview/knittda-overview?...
+#   - 진짜 버튼(Block Kit)은 Slack Webhook contact point 로는 불가 → generic Webhook + relay 필요.
+# ─────────────────────────────────────────────────────────────
+
+{{ define "knittda.title" }}{{ if eq .Status "firing" }}🔴 FIRING{{ else }}✅ RESOLVED{{ end }} · {{ .CommonLabels.alertname }}{{ end }}
+
+{{ define "knittda.text" }}
+{{ if eq .CommonLabels.severity "critical" }}<!here> *:rotating_light: CRITICAL*{{ else }}*:warning: WARNING*{{ end }}
+{{ range .Alerts }}
+*{{ .Labels.alertname }}*{{ if .Labels.slot }}  ·  slot `{{ .Labels.slot }}`{{ end }}{{ if .Labels.env }}  ·  env `{{ .Labels.env }}`{{ end }}
+• {{ .Annotations.summary }}
+{{ if .Annotations.description }}> {{ .Annotations.description }}{{ end }}
+• 시작: <!date^{{ .StartsAt.Unix }}^{date_num} {time_secs}|{{ .StartsAt.Format "2006-01-02 15:04:05 MST" }}>
+{{ if .Annotations.runbook_url }}📖 <{{ .Annotations.runbook_url }}|Runbook>{{ end }}{{ if and .Annotations.runbook_url .Annotations.dashboard_url }}      {{ end }}{{ if .Annotations.dashboard_url }}📊 <{{ .Annotations.dashboard_url }}|대시보드>{{ end }}
+{{ end }}
+{{ end }}
