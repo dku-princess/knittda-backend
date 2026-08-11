@@ -2,6 +2,7 @@ package com.example.knittdaserver.service;
 
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.example.knittdaserver.common.metrics.ExternalCallMetrics;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -18,6 +19,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class S3Service {
     private final AmazonS3 amazonS3;
+    private final ExternalCallMetrics externalCallMetrics;
 
     @Value("${cloud.aws.s3.bucketName}")
     private String bucketName;
@@ -48,7 +50,9 @@ public class S3Service {
             log.debug("[S3Service] S3 putObject 실행 - 버킷: {}, 파일명: {}, 크기: {} bytes", 
                     bucketName, fileName, file.length());
             
-            amazonS3.putObject(bucketName, fileName, new java.io.FileInputStream(file), metadata);
+            java.io.FileInputStream fileInputStream = new java.io.FileInputStream(file);
+            externalCallMetrics.record("s3", "upload",
+                    () -> amazonS3.putObject(bucketName, fileName, fileInputStream, metadata));
 
             String url = amazonS3.getUrl(bucketName, fileName).toString();
             log.info("[S3Service] 파일 업로드 완료 - URL: {}", url);
@@ -74,7 +78,7 @@ public class S3Service {
             String key = extractKeyFromUrl(fileName);
             
             log.debug("[S3Service] S3 deleteObject 실행 - 버킷: {}, 키: {}", bucketName, key);
-            amazonS3.deleteObject(bucketName, key);
+            externalCallMetrics.record("s3", "delete", () -> amazonS3.deleteObject(bucketName, key));
             
             log.info("[S3Service] 파일 삭제 완료 - 키: {}", key);
         } catch (Exception e) {

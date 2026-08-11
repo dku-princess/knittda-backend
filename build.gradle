@@ -26,6 +26,11 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
     implementation 'io.micrometer:micrometer-registry-prometheus'
+    // DB 쿼리 시간 자동 계측 (DataSource 프록시 → jdbc.* Timer, @Timed 불필요)
+    implementation 'net.ttddyy.observation:datasource-micrometer-spring-boot:1.0.5'
+    // datasource-micrometer 의 tracing 자동설정이 Tracer 빈을 요구하므로 Brave 브리지로 공급
+    // (익스포터가 없으면 트레이스는 no-op, 메트릭만 사용)
+    implementation 'io.micrometer:micrometer-tracing-bridge-brave'
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.3.0'
 
     compileOnly 'org.projectlombok:lombok'

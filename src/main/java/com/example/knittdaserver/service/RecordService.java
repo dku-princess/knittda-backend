@@ -1,5 +1,6 @@
 package com.example.knittdaserver.service;
 
+import com.example.knittdaserver.common.metrics.ExternalCallMetrics;
 import com.example.knittdaserver.common.response.ApiResponseCode;
 import com.example.knittdaserver.common.response.CustomException;
 import com.example.knittdaserver.dto.CreateRecordRequest;
@@ -42,6 +43,7 @@ public class RecordService {
     private final ProjectService projectService;
     private final OpenAiService openAiService;
     private final ObjectMapper objectMapper;
+    private final ExternalCallMetrics externalCallMetrics;
     
     @Value("${flask.server.url}")
     private String flaskServerUrl;
@@ -164,27 +166,28 @@ public class RecordService {
         try {
             log.info("[RecordService] Elasticsearch 동기화 시작 - recordId: {}", recordId);
             
-            webClient.delete()
-                .uri(flaskServerUrl + "/index/feeds/" + recordId)
-                .retrieve()
-                .onStatus(status -> status.is4xxClientError() || status.is5xxServerError(),
-                    clientResponse -> {
-                        log.warn("[RecordService] Elasticsearch 삭제 실패 - recordId: {}, status: {}", 
-                            recordId, clientResponse.statusCode());
-                        return Mono.error(new RuntimeException("Elasticsearch 삭제 실패: " + clientResponse.statusCode()));
+            externalCallMetrics.record("flask", "index_delete", () ->
+                webClient.delete()
+                    .uri(flaskServerUrl + "/index/feeds/" + recordId)
+                    .retrieve()
+                    .onStatus(status -> status.is4xxClientError() || status.is5xxServerError(),
+                        clientResponse -> {
+                            log.warn("[RecordService] Elasticsearch 삭제 실패 - recordId: {}, status: {}",
+                                recordId, clientResponse.statusCode());
+                            return Mono.error(new RuntimeException("Elasticsearch 삭제 실패: " + clientResponse.statusCode()));
+                        })
+                    .bodyToMono(Void.class)
+                    .timeout(Duration.ofSeconds(10))
+                    .doOnSuccess(result -> {
+                        log.info("[RecordService] ✅ Elasticsearch 동기화 완료 - recordId: {}", recordId);
                     })
-                .bodyToMono(Void.class)
-                .timeout(Duration.ofSeconds(10))
-                .doOnSuccess(result -> {
-                    log.info("[RecordService] ✅ Elasticsearch 동기화 완료 - recordId: {}", recordId);
-                })
-                .doOnError(error -> {
-                    log.error("[RecordService] ❌ Elasticsearch 동기화 실패 - recordId: {}, error: {}", 
-                        recordId, error.getMessage());
-                    // ES 삭제 실패해도 DB 삭제는 이미 완료되었으므로 예외를 전파하지 않음
-                    // 로그만 남기고 서비스는 정상 완료로 처리
-                })
-                .block();
+                    .doOnError(error -> {
+                        log.error("[RecordService] ❌ Elasticsearch 동기화 실패 - recordId: {}, error: {}",
+                            recordId, error.getMessage());
+                        // ES 삭제 실패해도 DB 삭제는 이미 완료되었으므로 예외를 전파하지 않음
+                        // 로그만 남기고 서비스는 정상 완료로 처리
+                    })
+                    .block());
                 
         } catch (Exception e) {
             // ES 삭제 실패는 로그만 남기고 서비스 실패로 처리하지 않음
@@ -265,7 +268,8 @@ public class RecordService {
             .input(List.of(text))
             .build();
         
-        EmbeddingResult result = openAiService.createEmbeddings(request);
+        EmbeddingResult result = externalCallMetrics.record("openai", "embedding",
+                () -> openAiService.createEmbeddings(request));
         List<Double> embeddingList = result.getData().get(0).getEmbedding();
         
         float[] embedding = new float[embeddingList.size()];
