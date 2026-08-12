@@ -21,6 +21,7 @@ public enum ApiResponseCode {
 
     // 프로젝트 관련
     PROJECT_NOT_FOUND("P404", "프로젝트를 찾을 수 없습니다", HttpStatus.NOT_FOUND),
+    DEFAULT_THUMBNAIL_NOT_FOUND("P405", "선택한 기본 이미지를 찾을 수 없습니다", HttpStatus.NOT_FOUND),
 
     // 기록 관련
     RECORD_NOT_FOUND("R404", "기록을 찾을 수 없습니다", HttpStatus.NOT_FOUND),
@@ -34,8 +35,10 @@ public enum ApiResponseCode {
     INVALID_INPUT("C001", "입력값이 올바르지 않습니다", HttpStatus.BAD_REQUEST),
 
     // 서버 오류
-    SERVER_ERROR("E500", "서버 내부 오류입니다", HttpStatus.INTERNAL_SERVER_ERROR);
+    SERVER_ERROR("E500", "서버 내부 오류입니다", HttpStatus.INTERNAL_SERVER_ERROR),
 
+    // 이미지 업로드 관련
+    IMAGE_UPLOAD_FAILED("I001", "이미지 업로드에 실패했습니다", HttpStatus.INTERNAL_SERVER_ERROR);
 
     private final String code;
     private final String message;

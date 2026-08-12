@@ -24,6 +24,13 @@ ext {
 dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'io.micrometer:micrometer-registry-prometheus'
+    // DB 쿼리 시간 자동 계측 (DataSource 프록시 → jdbc.* Timer, @Timed 불필요)
+    implementation 'net.ttddyy.observation:datasource-micrometer-spring-boot:1.0.5'
+    // datasource-micrometer 의 tracing 자동설정이 Tracer 빈을 요구하므로 Brave 브리지로 공급
+    // (익스포터가 없으면 트레이스는 no-op, 메트릭만 사용)
+    implementation 'io.micrometer:micrometer-tracing-bridge-brave'
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.3.0'
 
     compileOnly 'org.projectlombok:lombok'
@@ -49,11 +56,18 @@ dependencies {
     // Jackson for JSON processing
     implementation 'io.sentry:sentry-spring-boot-starter-jakarta:7.9.0'
 
+    implementation 'com.sksamuel.scrimage:scrimage-core:4.3.1'
+    implementation 'com.sksamuel.scrimage:scrimage-webp:4.3.1'
+
 
     implementation "com.fasterxml.jackson.core:jackson-core:${jacksonVersion}"
     implementation "com.fasterxml.jackson.core:jackson-databind:${jacksonVersion}"
     implementation "com.fasterxml.jackson.core:jackson-annotations:${jacksonVersion}"
     implementation "com.fasterxml.jackson.datatype:jackson-datatype-jsr310:${jacksonVersion}"
+
+    implementation 'com.theokanning.openai-gpt3-java:service:0.18.2'
+    // .env 파일 자동 로드
+    implementation 'me.paulschwarz:spring-dotenv:4.0.0'
 
     implementation("io.jsonwebtoken:jjwt-jackson:0.11.2") {
         exclude group: "com.fasterxml.jackson.core"
@@ -61,6 +75,9 @@ dependencies {
     implementation("io.sentry:sentry-spring-boot-starter-jakarta:7.9.0") {
         exclude group: "com.fasterxml.jackson.core"
     }
+    
+    // Firebase Admin SDK
+    implementation 'com.google.firebase:firebase-admin:9.2.0'
 
 }
 

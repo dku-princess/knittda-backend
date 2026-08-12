@@ -10,8 +10,6 @@ import com.fasterxml.jackson.datatype.jsr310.ser.LocalDateTimeSerializer;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
-
-import java.time.LocalDateTime;
 import java.util.List;
 
 @Getter
@@ -31,4 +29,6 @@ public class CreateRecordRequest {
 
     @NotBlank(message = "기록 내용은 필수입니다.")
     private String comment;
+
+    private String question;
 }

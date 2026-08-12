@@ -26,6 +26,8 @@ public class QRecord extends EntityPathBase<Record> {
 
     public final DateTimePath<java.time.LocalDateTime> createdAt = createDateTime("createdAt", java.time.LocalDateTime.class);
 
+    public final StringPath embeddingJson = createString("embeddingJson");
+
     public final NumberPath<Long> id = createNumber("id", Long.class);
 
     public final ListPath<Image, QImage> images = this.<Image, QImage>createList("images", Image.class, QImage.class, PathInits.DIRECT2);
@@ -35,6 +37,8 @@ public class QRecord extends EntityPathBase<Record> {
     public final EnumPath<RecordStatus> recordStatus = createEnum("recordStatus", RecordStatus.class);
 
     public final ListPath<String, StringPath> tags = this.<String, StringPath>createList("tags", String.class, StringPath.class, PathInits.DIRECT2);
+
+    public final DateTimePath<java.time.LocalDateTime> updatedAt = createDateTime("updatedAt", java.time.LocalDateTime.class);
 
     public QRecord(String variable) {
         this(Record.class, forVariable(variable), INITS);

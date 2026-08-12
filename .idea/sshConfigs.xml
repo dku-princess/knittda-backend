@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<project version="4">
-  <component name="SshConfigs">
-    <configs>
-      <sshConfig host="13.125.122.193" id="bd6adcbd-6a14-43a9-9f54-1ba9a18128f7" keyPath="$PROJECT_DIR$/../../Documents/knittda-server-250508.pem" port="22" nameFormat="DESCRIPTIVE" username="ubuntu" useOpenSSHConfig="false" />
-    </configs>
-  </component>
-</project>

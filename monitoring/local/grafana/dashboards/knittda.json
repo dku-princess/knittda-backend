@@ -1,0 +1,534 @@
+{
+  "uid": "knittda-overview",
+  "title": "knittda — Overview",
+  "schemaVersion": 38,
+  "version": 8,
+  "time": {
+    "from": "now-30m",
+    "to": "now"
+  },
+  "refresh": "15s",
+  "templating": {
+    "list": [
+      {
+        "name": "datasource",
+        "type": "datasource",
+        "query": "prometheus",
+        "label": "Data source",
+        "hide": 0,
+        "current": {},
+        "refresh": 1
+      },
+      {
+        "name": "env",
+        "type": "query",
+        "label": "env",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "definition": "label_values(up, env)",
+        "query": {
+          "query": "label_values(up, env)",
+          "refId": "StandardVariableQuery"
+        },
+        "refresh": 2,
+        "includeAll": true,
+        "multi": true,
+        "allValue": ".*",
+        "current": {},
+        "options": [],
+        "sort": 1,
+        "hide": 0,
+        "regex": ""
+      },
+      {
+        "name": "slot",
+        "type": "query",
+        "label": "slot",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "definition": "label_values(up, slot)",
+        "query": {
+          "query": "label_values(up, slot)",
+          "refId": "StandardVariableQuery"
+        },
+        "refresh": 2,
+        "includeAll": true,
+        "multi": true,
+        "allValue": ".*",
+        "current": {},
+        "options": [],
+        "sort": 1,
+        "hide": 0,
+        "regex": ""
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Targets Up",
+      "type": "stat",
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 0,
+        "y": 0
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(up{job=\"knittda\", slot=~\"$slot\", env=~\"$env\"})"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "요청률 (req/s) by uri",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 18,
+        "x": 6,
+        "y": 0
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (uri) (rate(http_server_requests_seconds_count{slot=~\"$slot\", env=~\"$env\"}[1m]))"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "HTTP p95 지연 (s)",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(http_server_requests_seconds_bucket{slot=~\"$slot\", env=~\"$env\"}[5m])))"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Heap 사용률",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(jvm_memory_used_bytes{area=\"heap\", slot=~\"$slot\", env=~\"$env\"}) / sum(jvm_memory_max_bytes{area=\"heap\", slot=~\"$slot\", env=~\"$env\"})"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "외부 의존 실패율 by target",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 16
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (target) (rate(external_call_seconds_count{result=\"error\", slot=~\"$slot\", env=~\"$env\"}[5m])) / sum by (target) (rate(external_call_seconds_count{slot=~\"$slot\", env=~\"$env\"}[5m]))"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "DB 쿼리률 (q/s)",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 16
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "rate(jdbc_query_seconds_count{slot=~\"$slot\", env=~\"$env\"}[1m])"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "title": "외부 의존 p95 지연 by target (s)",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 24
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "histogram_quantile(0.95, sum by (le, target) (rate(external_call_seconds_bucket{slot=~\"$slot\", env=~\"$env\"}[5m])))"
+        }
+      ]
+    },
+    {
+      "id": 100,
+      "title": "비즈니스 운영 지표 (M4)",
+      "type": "row",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 32
+      },
+      "panels": []
+    },
+    {
+      "id": 101,
+      "title": "신규 가입 (시간당 건수) by provider",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 33
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (provider) (increase(business_user_signup_total{slot=~\"$slot\", env=~\"$env\"}[1h]))",
+          "legendFormat": "{{provider}}"
+        }
+      ]
+    },
+    {
+      "id": 102,
+      "title": "로그인 성공 (시간당 건수) by method",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 33
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "legendFormat": "{{method}}",
+          "expr": "sum by (method) (increase(business_auth_login_total{result=\"success\", slot=~\"$slot\", env=~\"$env\"}[1h]))"
+        }
+      ]
+    },
+    {
+      "id": 103,
+      "title": "콘텐츠 생성 (시간당 건수)",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 33
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(increase(business_project_created_total{slot=~\"$slot\", env=~\"$env\"}[1h]))",
+          "legendFormat": "작품"
+        },
+        {
+          "refId": "B",
+          "expr": "sum(increase(business_record_created_total{slot=~\"$slot\", env=~\"$env\"}[1h]))",
+          "legendFormat": "작업기록"
+        },
+        {
+          "refId": "C",
+          "expr": "sum(increase(business_design_created_total{slot=~\"$slot\", env=~\"$env\"}[1h]))",
+          "legendFormat": "도안"
+        }
+      ]
+    },
+    {
+      "id": 104,
+      "title": "검색 (시간당 건수) by version",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 41
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (version) (increase(business_search_performed_total{slot=~\"$slot\", env=~\"$env\"}[1h]))",
+          "legendFormat": "{{version}}"
+        }
+      ]
+    },
+    {
+      "id": 105,
+      "title": "검색 결과 구성 (hit/empty, 시간당 건수)",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 41
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (result) (increase(business_search_performed_total{slot=~\"$slot\", env=~\"$env\"}[1h]))",
+          "legendFormat": "{{result}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": 106,
+      "title": "최근 24h 신규 가입",
+      "type": "stat",
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 0,
+        "y": 49
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(increase(business_user_signup_total{slot=~\"$slot\", env=~\"$env\"}[24h]))"
+        }
+      ]
+    },
+    {
+      "id": 107,
+      "title": "최근 24h 작품 생성",
+      "type": "stat",
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 6,
+        "y": 49
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(increase(business_project_created_total{slot=~\"$slot\", env=~\"$env\"}[24h]))"
+        }
+      ]
+    },
+    {
+      "id": 108,
+      "title": "최근 24h 작업 기록",
+      "type": "stat",
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 12,
+        "y": 49
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(increase(business_record_created_total{slot=~\"$slot\", env=~\"$env\"}[24h]))"
+        }
+      ]
+    },
+    {
+      "id": 109,
+      "title": "최근 24h 검색",
+      "type": "stat",
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 18,
+        "y": 49
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(increase(business_search_performed_total{slot=~\"$slot\", env=~\"$env\"}[24h]))"
+        }
+      ]
+    },
+    {
+      "id": 110,
+      "title": "API Deprecation 추세",
+      "type": "row",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 53
+      },
+      "panels": []
+    },
+    {
+      "id": 111,
+      "title": "previews 호출 (시간당) — v1(deprecated) vs v2",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 16,
+        "x": 0,
+        "y": 54
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "legendFormat": "{{version}}",
+          "expr": "sum by (version) (increase(api_previews_calls_total{slot=~\"$slot\", env=~\"$env\"}[1h]))"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 10
+          }
+        },
+        "overrides": []
+      },
+      "description": "v1(deprecated)이 0으로 수렴하는지 추적. v2로 이전 진행 상황."
+    },
+    {
+      "id": 112,
+      "title": "최근 7d v1(deprecated) 호출 (0=제거 안전)",
+      "type": "stat",
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 54
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(increase(api_previews_calls_total{version=\"v1\", slot=~\"$slot\", env=~\"$env\"}[7d]))"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          }
+        },
+        "overrides": []
+      },
+      "description": "최근 7일 v1 호출 수. 0이면 v1 엔드포인트 제거 안전 신호(저트래픽이라 창을 길게)."
+    }
+  ]
+}

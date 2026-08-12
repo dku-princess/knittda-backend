@@ -24,10 +24,6 @@ public class QProject extends EntityPathBase<Project> {
 
     public final DateTimePath<java.time.LocalDateTime> createdAt = createDateTime("createdAt", java.time.LocalDateTime.class);
 
-    public final StringPath customNeedleInfo = createString("customNeedleInfo");
-
-    public final StringPath customYarnInfo = createString("customYarnInfo");
-
     public final QDesign design;
 
     public final DatePath<java.time.LocalDate> endDate = createDate("endDate", java.time.LocalDate.class);
@@ -36,7 +32,7 @@ public class QProject extends EntityPathBase<Project> {
 
     public final NumberPath<Long> id = createNumber("id", Long.class);
 
-    public final QImage image;
+    public final DateTimePath<java.time.LocalDateTime> lastRecordAt = createDateTime("lastRecordAt", java.time.LocalDateTime.class);
 
     public final StringPath nickname = createString("nickname");
 
@@ -45,6 +41,8 @@ public class QProject extends EntityPathBase<Project> {
     public final DatePath<java.time.LocalDate> startDate = createDate("startDate", java.time.LocalDate.class);
 
     public final EnumPath<ProjectStatus> status = createEnum("status", ProjectStatus.class);
+
+    public final QThumbnailImage thumbnail;
 
     public final QUser user;
 
@@ -66,8 +64,8 @@ public class QProject extends EntityPathBase<Project> {
 
     public QProject(Class<? extends Project> type, PathMetadata metadata, PathInits inits) {
         super(type, metadata, inits);
-        this.design = inits.isInitialized("design") ? new QDesign(forProperty("design")) : null;
-        this.image = inits.isInitialized("image") ? new QImage(forProperty("image"), inits.get("image")) : null;
+        this.design = inits.isInitialized("design") ? new QDesign(forProperty("design"), inits.get("design")) : null;
+        this.thumbnail = inits.isInitialized("thumbnail") ? new QThumbnailImage(forProperty("thumbnail"), inits.get("thumbnail")) : null;
         this.user = inits.isInitialized("user") ? new QUser(forProperty("user")) : null;
     }
 
