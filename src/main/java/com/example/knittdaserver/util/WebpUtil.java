@@ -1,5 +1,7 @@
 package com.example.knittdaserver.util;
 
+import java.awt.Graphics2D;
+import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
@@ -67,6 +69,9 @@ public class WebpUtil {
                 image = ImmutableImage.loader().fromFile(file);
             }
 
+            // 일부 이미지(TYPE_CUSTOM 컬러모델)는 WebpWriter 인코딩에서 실패하므로 표준 타입으로 정규화
+            image = ensureEncodableType(image);
+
             File result = image.output(WebpWriter.DEFAULT, webpFile);
             
             if (result == null || !result.exists()) {
@@ -87,6 +92,29 @@ public class WebpUtil {
                     fileName, filePath, originalSize, e.getMessage(), e);
             return null;
         }
+    }
+
+    /**
+     * scrimage WebpWriter 는 내부적으로 ImageIO 로 이미지를 다루는데, BufferedImage 타입이
+     * TYPE_CUSTOM 이면 "Cannot create from TYPE_CUSTOM!" 로 인코딩이 실패한다.
+     * (일부 PNG/HEIC 디코딩 결과가 TYPE_CUSTOM 이 될 수 있음)
+     * 이 경우 표준 TYPE_INT_ARGB 로 재구성해 인코딩 가능한 형태로 정규화한다.
+     */
+    private ImmutableImage ensureEncodableType(ImmutableImage image) {
+        BufferedImage awt = image.awt();
+        if (awt.getType() != BufferedImage.TYPE_CUSTOM) {
+            return image;
+        }
+        log.info("[WebpUtil] TYPE_CUSTOM 이미지 감지 - TYPE_INT_ARGB 로 정규화");
+        BufferedImage normalized = new BufferedImage(
+                awt.getWidth(), awt.getHeight(), BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g = normalized.createGraphics();
+        try {
+            g.drawImage(awt, 0, 0, null);
+        } finally {
+            g.dispose();
+        }
+        return ImmutableImage.fromAwt(normalized);
     }
 
     /** 원본 파일명의 확장자를 .webp 로 치환한다. 확장자가 없으면 .webp 를 덧붙인다. */
