@@ -8,14 +8,17 @@ import com.example.knittdaserver.entity.Record;
 import com.example.knittdaserver.repository.DesignRepository;
 import com.example.knittdaserver.repository.ImageRepository;
 import com.example.knittdaserver.repository.ProjectRepository;
+import com.example.knittdaserver.repository.RecordRepository;
 import com.example.knittdaserver.repository.ThumbnailImageRepository;
 
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -32,6 +35,7 @@ public class ProjectService {
     private final ProjectRepository projectRepository;
     private final DesignRepository designRepository;
     private final ImageRepository imageRepository;
+    private final RecordRepository recordRepository;
     private final ThumbnailImageRepository thumbnailImageRepository;
     private final AuthService authService;
     private final S3Service s3Service;
@@ -279,45 +283,86 @@ public class ProjectService {
         }
     }
 
-    // 전체 프로젝트 미리보기 조회
-    @Transactional
-    public List<ProjectPreviewResponse> getProjectPreviews() {
-        List<Project> projects = projectRepository.findAllByOrderByLastRecordAtDesc();
-        List<ProjectPreviewResponse> responses = new ArrayList<>();
+    public static final int PROJECT_PREVIEWS_DEFAULT_SIZE = 50;
+    public static final int PROJECT_PREVIEWS_LEGACY_LIMIT = 100;
 
+    // [v1 호환] 구버전 클라이언트용 — 페이지네이션 없이 상위 N건만 List 로 반환 (OOM 방지)
+    @Transactional(readOnly = true)
+    public List<ProjectPreviewResponse> getProjectPreviewsLegacy() {
+        PageRequest pageRequest = PageRequest.of(0, PROJECT_PREVIEWS_LEGACY_LIMIT);
+        Page<Project> projectPage = projectRepository.findPageByOrderByLastRecordAtDesc(pageRequest);
+        return mapToPreviews(projectPage.getContent());
+    }
+
+    // 전체 프로젝트 미리보기 조회 (페이지네이션)
+    @Transactional(readOnly = true)
+    public Page<ProjectPreviewResponse> getProjectPreviews(int page, int size) {
+        int safeSize = Math.min(Math.max(size, 1), PROJECT_PREVIEWS_DEFAULT_SIZE);
+        int safePage = Math.max(page, 0);
+        PageRequest pageRequest = PageRequest.of(safePage, safeSize);
+        Page<Project> projectPage =
+                projectRepository.findPageByOrderByLastRecordAtDesc(pageRequest);
+        return new org.springframework.data.domain.PageImpl<>(
+                mapToPreviews(projectPage.getContent()), pageRequest, projectPage.getTotalElements());
+    }
+
+    private List<ProjectPreviewResponse> mapToPreviews(List<Project> projects) {
+        if (projects.isEmpty()) {
+            return List.of();
+        }
+
+        List<Long> projectIds = projects.stream().map(Project::getId).toList();
+
+        // N+1 방지 (1): record 개수를 단일 집계 쿼리로 조회.
+        Map<Long, Long> recordCountByProjectId = recordRepository.countByProjectIds(projectIds).stream()
+                .collect(java.util.stream.Collectors.toMap(
+                        RecordRepository.RecordCountProjection::getProjectId,
+                        RecordRepository.RecordCountProjection::getCnt));
+
+        // N+1 방지 (2): 프로젝트별 "최신 record 의 첫 이미지" 를 단일 윈도우 함수 쿼리로 조회.
+        // project.getRecords() 컬렉션을 호출하지 않으므로 records lazy load 도 함께 제거됨.
+        Map<Long, String> latestImageByProjectId = imageRepository.findLatestImagePerProject(projectIds).stream()
+                .collect(java.util.stream.Collectors.toMap(
+                        ImageRepository.ProjectLatestImageProjection::getProjectId,
+                        ImageRepository.ProjectLatestImageProjection::getImageUrl));
+
+        List<ProjectPreviewResponse> responses = new ArrayList<>(projects.size());
         for (Project project : projects) {
-            List<Long> recordIds = project.getRecords().stream()
-                .map(Record::getId)
-                .toList();
+            String primaryImageUrl = resolvePrimaryImageUrl(project, latestImageByProjectId);
 
-            List<Image> recentImages = recordIds.isEmpty()
-                ? new ArrayList<>()
-                : new ArrayList<>(imageRepository.findTop3ByRecordIdInOrderByCreatedAtDesc(recordIds));
+            // 구버전 클라이언트 호환을 위해 List[0] 접근이 동작하도록 단일 원소 리스트 유지.
+            // 신버전 클라이언트는 recentImageUrl(단일) 필드를 사용.
+            List<String> imageUrls = primaryImageUrl == null
+                    ? List.of()
+                    : List.of(primaryImageUrl);
 
-            if (recentImages.size() < 3 && project.getThumbnail() != null) {
-                // ThumbnailImage를 Image로 변환하여 추가
-                Image thumbnailAsImage = Image.builder()
-                        .imageUrl(project.getThumbnail().getImageUrl())
-                        .build();
-                recentImages.add(thumbnailAsImage);
-            }
-
-            List<String> imageUrls = recentImages.stream()
-                .filter(Objects::nonNull) // null 값 필터링
-                .map(Image::getImageUrl)
-                .toList();
+            long recordNum = recordCountByProjectId.getOrDefault(project.getId(), 0L);
 
             responses.add(ProjectPreviewResponse.builder()
                 .projectId(project.getId())
                 .userName(project.getUser().getNickname())
                 .projectName(project.getNickname())
-                .recordNum(project.getRecords().size())
+                .recordNum((int) recordNum)
                 .recentImageUrls(imageUrls)
+                .recentImageUrl(primaryImageUrl)
                 .lastRecordAt(project.getLastRecordAt())
                 .build());
         }
 
         return responses;
+    }
+
+    // 대표 이미지 우선순위: 사전 조회된 최신 record 이미지 1장 → 없으면 thumbnail → 없으면 null.
+    // thumbnail 은 ProjectRepository 의 @EntityGraph 로 이미 fetch 되어 있어 추가 쿼리 없음.
+    private String resolvePrimaryImageUrl(Project project, Map<Long, String> latestImageByProjectId) {
+        String latest = latestImageByProjectId.get(project.getId());
+        if (latest != null) {
+            return latest;
+        }
+        if (project.getThumbnail() != null) {
+            return project.getThumbnail().getImageUrl();
+        }
+        return null;
     }
 
     /**
