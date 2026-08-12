@@ -1,5 +1,6 @@
 package com.example.knittdaserver.service;
 
+import com.example.knittdaserver.common.metrics.BusinessMetrics;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.stereotype.Service;
@@ -7,6 +8,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
+import com.example.knittdaserver.common.metrics.ExternalCallMetrics;
 import com.example.knittdaserver.dto.FeedDto;
 import com.example.knittdaserver.dto.RecordResponse;
 import com.example.knittdaserver.dto.FlaskSearchRequest;
@@ -32,6 +34,8 @@ public class FeedService {
     private static final Logger log = LoggerFactory.getLogger(FeedService.class);
     private final RecordRepository recordRepository;
     private final com.example.knittdaserver.service.SearchLogService searchLogService;
+    private final ExternalCallMetrics externalCallMetrics;
+    private final BusinessMetrics businessMetrics;
     
     @Value("${flask.server.url}")
     private String flaskServerUrl;
@@ -89,6 +93,11 @@ public class FeedService {
             .collect(Collectors.toList());
         log.info("[FeedService] 검색 결과 recordId 목록 - searchId: {}, recordIds: {}", searchId, resultRecordIds);
         
+        // 비즈니스 메트릭: 검색 실행 건수 (버전별, 결과 유무별)
+        businessMetrics.count("search.performed",
+                "version", result.getVersion(),
+                "result", result.getPage().getTotalElements() == 0 ? "empty" : "hit");
+
         // SearchResponse 생성 (실제 사용된 버전 포함)
         return SearchResponse.from(result.getPage(), searchId, result.getVersion());
     }
@@ -194,22 +203,24 @@ public class FeedService {
             sentRecordIds.isEmpty() ? "없음" : sentRecordIds.stream().max(Long::compare).orElse(null));
             
         // 3. Flask 서버로 요청 전송 (v6 엔드포인트 - Hybrid 3:7)
-            FlaskSearchResponse response = webClient.post()
-            .uri(flaskServerUrl + "/search/v6")
-                .bodyValue(request)
-                .retrieve()
-                .onStatus(status -> status.is4xxClientError() || status.is5xxServerError(),
-                    clientResponse -> {
-                    log.error("[v6 search] Flask 서버 오류 응답: {}", clientResponse.statusCode());
-                        return Mono.error(new RuntimeException("Flask 서버 오류: " + clientResponse.statusCode()));
-                    })
-                .bodyToMono(FlaskSearchResponse.class)
-                .timeout(java.time.Duration.ofSeconds(30))
-                .block();
-            
-            if (response == null || response.getResults() == null) {
-            throw new RuntimeException("Flask 서버 응답이 null이거나 결과가 없음");
-            }
+            FlaskSearchResponse response = externalCallMetrics.record("flask", "search", () -> {
+                FlaskSearchResponse r = webClient.post()
+                .uri(flaskServerUrl + "/search/v6")
+                    .bodyValue(request)
+                    .retrieve()
+                    .onStatus(status -> status.is4xxClientError() || status.is5xxServerError(),
+                        clientResponse -> {
+                        log.error("[v6 search] Flask 서버 오류 응답: {}", clientResponse.statusCode());
+                            return Mono.error(new RuntimeException("Flask 서버 오류: " + clientResponse.statusCode()));
+                        })
+                    .bodyToMono(FlaskSearchResponse.class)
+                    .timeout(java.time.Duration.ofSeconds(30))
+                    .block();
+                if (r == null || r.getResults() == null) {
+                    throw new RuntimeException("Flask 서버 응답이 null이거나 결과가 없음");
+                }
+                return r;
+            });
             
         log.info("[v6 search] Flask 서버 응답 받음: {}개 결과", response.getResults().size());
             
@@ -252,22 +263,24 @@ public class FeedService {
             log.info("[v5 search] Flask 서버로 요청 전송 - 키워드: '{}', 데이터 개수: {}개", keyword, allFeeds.size());
             
         // 3. Flask 서버로 요청 전송 (v5 엔드포인트 - Hybrid 5:5)
-            FlaskSearchResponse response = webClient.post()
-                .uri(flaskServerUrl + "/search/v5")
-                .bodyValue(request)
-                .retrieve()
-                .onStatus(status -> status.is4xxClientError() || status.is5xxServerError(),
-                    clientResponse -> {
-                        log.error("[v5 search] Flask 서버 오류 응답: {}", clientResponse.statusCode());
-                        return Mono.error(new RuntimeException("Flask 서버 오류: " + clientResponse.statusCode()));
-                    })
-                .bodyToMono(FlaskSearchResponse.class)
-                .timeout(java.time.Duration.ofSeconds(30))
-                .block();
-            
-            if (response == null || response.getResults() == null) {
-            throw new RuntimeException("Flask 서버 응답이 null이거나 결과가 없음");
-            }
+            FlaskSearchResponse response = externalCallMetrics.record("flask", "search", () -> {
+                FlaskSearchResponse r = webClient.post()
+                    .uri(flaskServerUrl + "/search/v5")
+                    .bodyValue(request)
+                    .retrieve()
+                    .onStatus(status -> status.is4xxClientError() || status.is5xxServerError(),
+                        clientResponse -> {
+                            log.error("[v5 search] Flask 서버 오류 응답: {}", clientResponse.statusCode());
+                            return Mono.error(new RuntimeException("Flask 서버 오류: " + clientResponse.statusCode()));
+                        })
+                    .bodyToMono(FlaskSearchResponse.class)
+                    .timeout(java.time.Duration.ofSeconds(30))
+                    .block();
+                if (r == null || r.getResults() == null) {
+                    throw new RuntimeException("Flask 서버 응답이 null이거나 결과가 없음");
+                }
+                return r;
+            });
             
             log.info("[v5 search] Flask 서버 응답 받음: {}개 결과", response.getResults().size());
             

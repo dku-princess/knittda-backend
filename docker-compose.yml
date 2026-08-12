@@ -1,29 +1,87 @@
 version: '3.8'
 
 services:
-  knittda-backend:
+  app:
     build: .
-    ports:
-      - "8080:8080"
-    restart: always
-    volumes:
-      - ./logs:/app/logs
+    container_name: knittda-app-local
+    # blue(EC2)와 달리 .env 를 반드시 로드해야 함.
+    # 기존 로컬 compose 에 env_file 이 없어서 OPEN_AI_KEY / AWS_* / FIREBASE_SERVICE_ACCOUNT_KEY /
+    # MYSQL_PASSWORD / JWT_SECRET_KEY 가 주입되지 않아 openai.api-key 등 미해결로 기동 실패했었다.
+    env_file:
+      - .env
     environment:
+      # 로컬 개발용 프로파일(swagger on, sentry 저샘플). prod 와 완전히 동일하게 돌리려면 prod 로 변경.
       SPRING_PROFILES_ACTIVE: staging
+      # blue 는 RDS 를 보지만 로컬은 아래 mysql 컨테이너를 사용
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/knittda-db
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: root
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update   # 빈 DB 에 스키마 자동 생성
+      # blue 와 동일하게 명시적으로 주입(.env 값 매핑)
+      OPENAI_API_KEY: ${OPEN_AI_KEY}
+      FIREBASE_SERVICE_ACCOUNT_KEY: ${FIREBASE_SERVICE_ACCOUNT_KEY}
+      # 로컬에서 발생한 이벤트가 운영 Sentry 로 가지 않도록 비활성화(원하면 제거)
+      SENTRY_DSN: ""
+      SERVER_PORT: 8080
+      TZ: Asia/Seoul
+      LANG: ko_KR.UTF-8
+      LC_ALL: ko_KR.UTF-8
+    ports:
+      - "8083:8080"          # 프론트엔드가 8083 으로 요청
     depends_on:
-      - mysql
+      mysql:
+        condition: service_healthy   # mysql 준비 완료 후 앱 기동 (커넥션 레이스 방지)
+    restart: always
+    volumes:
+      - ./logs:/app/logs
 
   mysql:
     image: mysql:8.0
-    ports:
-      - "3306:3306"
+    container_name: knittda-mysql-local
     environment:
       MYSQL_ROOT_PASSWORD: root
       MYSQL_DATABASE: knittda-db
+      TZ: Asia/Seoul
+    ports:
+      - "3306:3306"
     volumes:
-      - ./mysql-data:/var/lib/mysql
-      - ./mysql-init:/docker-entrypoint-initdb.d
+      - mysql-data:/var/lib/mysql
+      # 주의: mysql-init/knittda_dump.sql 은 mysqldump 의 LOCK TABLES 오류로 초기화가 실패한다.
+      #       스키마는 위 SPRING_JPA_HIBERNATE_DDL_AUTO=update 로 생성하므로 시드 마운트는 비활성화.
+      #       시드 데이터가 필요하면 덤프를 정상화(LOCK TABLES 제거)한 뒤 아래 줄의 주석을 해제.
+      # - ./mysql-init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-proot"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
     restart: always
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: knittda-prometheus-local
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/local/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    depends_on:
+      - app
+    restart: always
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: knittda-grafana-local
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+    volumes:
+      - ./monitoring/local/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/local/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      - prometheus
+    restart: always
+
+volumes:
+  mysql-data:

@@ -1,5 +1,6 @@
 package com.example.knittdaserver.service;
 
+import com.example.knittdaserver.common.metrics.BusinessMetrics;
 import com.example.knittdaserver.common.response.ApiResponseCode;
 import com.example.knittdaserver.common.response.CustomException;
 import com.example.knittdaserver.dto.*;
@@ -42,6 +43,7 @@ public class ProjectService {
     private final AuthService authService;
     private final S3Service s3Service;
     private final FileUploadService fileUploadService;
+    private final BusinessMetrics businessMetrics;
 
     /**
      * 프로젝트 생성
@@ -96,7 +98,51 @@ public class ProjectService {
             log.warn("[ProjectService] 프로젝트 생성 - 지정/기본 썸네일 모두 없음 - 프로젝트 ID: {}", project.getId());
         }
 
-        return ProjectDto.from(projectRepository.save(project));
+        ProjectDto dto = ProjectDto.from(projectRepository.save(project));
+        businessMetrics.count("project.created", "thumbnail",
+                source == null ? "none" : source.isDefault() ? "default" : "custom");
+        return dto;
+    }
+
+    /** 썸네일 원본 정보(URL + 기본이미지 여부). */
+    private record ThumbnailSource(String imageUrl, boolean isDefault) {}
+
+    /**
+     * 요청으로부터 썸네일 소스를 결정한다.
+     * ① file 이 있으면 업로드 후 사용자 썸네일(isDefault=false)
+     * ② file 이 없고 defaultThumbnailId 가 있으면 기본 이미지 소스(isDefault=true)
+     * ③ 둘 다 없으면 null (호출부에서 정책에 맞게 처리)
+     */
+    private ThumbnailSource resolveThumbnailSource(MultipartFile file, Long defaultThumbnailId) {
+        if (file != null) {
+            try {
+                String imageUrl = fileUploadService.uploadImageAsWebp(file);
+                log.info("[ProjectService] 썸네일 업로드 완료 - URL: {}", imageUrl);
+                return new ThumbnailSource(imageUrl, false);
+            } catch (IOException e) {
+                log.error("[ProjectService] 썸네일 업로드 실패 - 파일명: {}, 에러: {}",
+                        file.getOriginalFilename(), e.getMessage(), e);
+                throw new CustomException(ApiResponseCode.IMAGE_UPLOAD_FAILED);
+            }
+        }
+
+        if (defaultThumbnailId != null) {
+            DefaultProjectThumbnail defaultThumbnail = defaultProjectThumbnailRepository
+                    .findByIdAndActiveTrue(defaultThumbnailId)
+                    .orElseThrow(() -> new CustomException(ApiResponseCode.DEFAULT_THUMBNAIL_NOT_FOUND));
+            return new ThumbnailSource(defaultThumbnail.getImageUrl(), true);
+        }
+
+        return null;
+    }
+
+    /** 생성 시 아무 썸네일도 지정되지 않았을 때 사용할 첫 번째 활성 기본 이미지. */
+    private ThumbnailSource findFallbackThumbnailSource() {
+        return defaultProjectThumbnailRepository.findByActiveTrueOrderBySortOrderAsc()
+                .stream()
+                .findFirst()
+                .map(d -> new ThumbnailSource(d.getImageUrl(), true))
+                .orElse(null);
     }
 
     /** 썸네일 원본 정보(URL + 기본이미지 여부). */

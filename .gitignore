@@ -37,3 +37,9 @@ mysql-data/
 *.bak
 *.swp
 *~
+
+# Grafana Cloud 토큰(커밋 금지)
+monitoring/prod/gc_token
+
+# AWS CLI 설치파일(실수 커밋 방지)
+AWSCLIV2.pkg

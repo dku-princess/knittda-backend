@@ -1,5 +1,6 @@
 package com.example.knittdaserver.service;
 
+import com.example.knittdaserver.common.metrics.BusinessMetrics;
 import com.example.knittdaserver.common.response.ApiResponseCode;
 import com.example.knittdaserver.common.response.CustomException;
 import com.example.knittdaserver.dto.AuthResponse;
@@ -42,54 +43,68 @@ public class AuthService {
     private final WebClient.Builder webClientBuilder;
     private final FirebaseAuth firebaseAuth;
     private final S3Service s3Service;
+    private final BusinessMetrics businessMetrics;
 
     private final String KAKAO_USER_INFO_URL = "https://kapi.kakao.com/v2/user/me";
 
     @Transactional
     public AuthResponse loginWithKakao(String kakaoAccessToken) {
+        try {
+            UserDto userDto = getKakaoUserInfo(kakaoAccessToken);
+            Optional<User> userOptional = userRepository.findByKakaoId(userDto.getKakaoId());
+            User user;
 
-        UserDto userDto = getKakaoUserInfo(kakaoAccessToken);
-        Optional<User> userOptional = userRepository.findByKakaoId(userDto.getKakaoId());
-        User user;
+            if (userOptional.isPresent()) {
+                user = userOptional.get();
+            } else {
+                user = User.builder()
+                        .kakaoId(userDto.getKakaoId())
+                        .nickname(userDto.getNickname())
+                        .email(userDto.getEmail())
+                        .profileImageUrl(userDto.getProfileImageUrl())
+                        .build();
+                userRepository.save(user);
+                businessMetrics.count("user.signup", "provider", "kakao");
+            }
 
-        if (userOptional.isPresent()) {
-            user = userOptional.get();
-        } else {
-            user = User.builder()
-                    .kakaoId(userDto.getKakaoId())
-                    .nickname(userDto.getNickname())
-                    .email(userDto.getEmail())
-                    .profileImageUrl(userDto.getProfileImageUrl())
-                    .build();
-            userRepository.save(user);
+            String jwt = jwtUtil.generateToken(user.getId());
+            userDto = UserDto.from(user);
+            businessMetrics.count("auth.login", "method", "kakao", "result", "success");
+            return new AuthResponse(jwt, userDto);
+        } catch (RuntimeException e) {
+            businessMetrics.count("auth.login", "method", "kakao", "result", "fail");
+            throw e;
         }
-
-        String jwt = jwtUtil.generateToken(user.getId());
-        userDto = UserDto.from(user);
-        return new AuthResponse(jwt, userDto);
     }
 
     @Transactional
     public AuthResponse loginWithApple(String appleAccessToken, String name) {
-        UserDto userDto = getAppleUserInfo(appleAccessToken);
-        Optional<User> userOptional = userRepository.findByAppleId(userDto.getAppleId());
-        User user;
+        try {
+            UserDto userDto = getAppleUserInfo(appleAccessToken);
+            Optional<User> userOptional = userRepository.findByAppleId(userDto.getAppleId());
+            User user;
 
-        if (userOptional.isPresent()) {
-            user = userOptional.get();
-        } else {
-            user = User.builder()
-                    .appleId(userDto.getAppleId())
-                    .nickname(name.isBlank() ? null : name)
-                    .email(userDto.getEmail())
-                    .profileImageUrl(userDto.getProfileImageUrl())
-                    .build();
-            userRepository.save(user);
+            if (userOptional.isPresent()) {
+                user = userOptional.get();
+            } else {
+                user = User.builder()
+                        .appleId(userDto.getAppleId())
+                        .nickname(name.isBlank() ? null : name)
+                        .email(userDto.getEmail())
+                        .profileImageUrl(userDto.getProfileImageUrl())
+                        .build();
+                userRepository.save(user);
+                businessMetrics.count("user.signup", "provider", "apple");
+            }
+
+            String jwt = jwtUtil.generateToken(user.getId());
+            userDto = UserDto.from(user);
+            businessMetrics.count("auth.login", "method", "apple", "result", "success");
+            return new AuthResponse(jwt, userDto);
+        } catch (RuntimeException e) {
+            businessMetrics.count("auth.login", "method", "apple", "result", "fail");
+            throw e;
         }
-
-        String jwt = jwtUtil.generateToken(user.getId());
-        userDto = UserDto.from(user);
-        return new AuthResponse(jwt, userDto);
     }
 
     // AppStore 심사 시 사용하는 로그인 메서드
@@ -199,8 +214,11 @@ public class AuthService {
             Long userId = jwtUtil.validateAndExtractUserId(jwt);
             User user = userRepository.findById(userId)
                     .orElseThrow(() -> new CustomException(ApiResponseCode.USER_NOT_FOUND));
+            // 토큰 기반 자동 로그인(/me = AutoLoginUseCase). 토큰 검증 성공 지점에서만 계측.
+            businessMetrics.count("auth.login", "method", "auto", "result", "success");
             return UserResponse.from(user);
         }catch (Exception e) {
+            businessMetrics.count("auth.login", "method", "auto", "result", "fail");
             throw new CustomException(ApiResponseCode.INVALID_TOKEN);
         }
     }
