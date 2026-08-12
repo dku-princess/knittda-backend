@@ -22,7 +22,7 @@
 #   - Runbook / 대시보드: 각 룰 annotations 에 URL 을 넣으면 링크로 렌더된다(없으면 자동 생략).
 #       예) knittda-alerts.yml 의 각 룰 annotations 에 추가:
 #           runbook_url:   https://tteuda.notion.site/Rule-Book-3b9373d7258680448f5fcf585f44e05a
-#           dashboard_url: https://rubymocha2959.grafana.net/d/knittda-overview/knittda-overview?...
+#           dashboard_url: https://tteuda.grafana.net/d/knittda-overview/knittda-overview?...
 #   - 진짜 버튼(Block Kit)은 Slack Webhook contact point 로는 불가 → generic Webhook + relay 필요.
 # ─────────────────────────────────────────────────────────────
 

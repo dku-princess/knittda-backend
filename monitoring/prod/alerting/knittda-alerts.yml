@@ -3,7 +3,7 @@
 #
 # Import: Grafana Cloud → Alerting → Alert rules → Import alert rules
 #   → Import source: "Prometheus YAML file" → 이 파일 업로드
-#   → Target data source: grafanacloud-rubymocha2959-prom (M2 Cloud Prometheus)
+#   → Target data source: grafanacloud-tteuda-prom (M2 Cloud Prometheus)
 #
 # 형식: Prometheus/Mimir 룰 파일. expr 에 비교(> 임계)를 포함해야 발화 시에만 시리즈 반환.
 # 저트래픽(DAU<10) 기준 v1.1: 5xx·external 은 비율 대신 increase() 개수.
@@ -28,7 +28,7 @@ groups:
           summary: "[{{ $labels.slot }}] Heap 사용률 {{ $value | humanizePercentage }} (>90%) 5분 지속"
           description: "OOM 임박. 힙 덤프 확보 후 해당 slot 재시작 검토. /previews OOM 재발 케이스."
           runbook_url: 'https://tteuda.notion.site/Rule-Book-3b9373d7258680448f5fcf585f44e05a'
-          dashboard_url: 'https://rubymocha2959.grafana.net/d/knittda-overview/knittda-overview?from=now-15m&to=now&timezone=browser&var-datasource=grafanacloud-prom&var-env=$__all&var-slot=$__all&refresh=10s'
+          dashboard_url: 'https://tteuda.grafana.net/d/knittda-overview/knittda-overview?from=now-15m&to=now&timezone=browser&var-datasource=grafanacloud-prom&var-env=$__all&var-slot=$__all&refresh=10s'
 
       - alert: TargetDown
         expr: up{job="knittda", env="prod"} == 0
@@ -40,7 +40,7 @@ groups:
           summary: "[{{ $labels.slot }}] 타깃 DOWN 2분 지속"
           description: "해당 slot 앱/agent 스크레이프 실패. 컨테이너·nginx·배포 상태 확인. 배포(Blue/Green) 중이면 silence 필요."
           runbook_url: 'https://tteuda.notion.site/Rule-Book-3b9373d7258680448f5fcf585f44e05a'
-          dashboard_url: 'https://rubymocha2959.grafana.net/d/knittda-overview/knittda-overview?from=now-15m&to=now&timezone=browser&var-datasource=grafanacloud-prom&var-env=$__all&var-slot=$__all&refresh=10s'
+          dashboard_url: 'https://tteuda.grafana.net/d/knittda-overview/knittda-overview?from=now-15m&to=now&timezone=browser&var-datasource=grafanacloud-prom&var-env=$__all&var-slot=$__all&refresh=10s'
 
       # 5xx — 저트래픽 v1.1: 10분간 5xx 개수(비율 아님). 임계 3건은 잠정.
       - alert: Http5xxErrors
@@ -53,7 +53,7 @@ groups:
           summary: "5xx {{ $value | printf \"%.0f\" }}건 / 최근 10분 (>3)"
           description: "서버 에러 급증. Sentry 에서 예외 상세 확인(역할 분리). 최근 배포 여부 점검. 저트래픽 count 기반(v1.1)."
           runbook_url: 'https://tteuda.notion.site/Rule-Book-3b9373d7258680448f5fcf585f44e05a'
-          dashboard_url: 'https://rubymocha2959.grafana.net/d/knittda-overview/knittda-overview?from=now-15m&to=now&timezone=browser&var-datasource=grafanacloud-prom&var-env=$__all&var-slot=$__all&refresh=10s'
+          dashboard_url: 'https://tteuda.grafana.net/d/knittda-overview/knittda-overview?from=now-15m&to=now&timezone=browser&var-datasource=grafanacloud-prom&var-env=$__all&var-slot=$__all&refresh=10s'
 
   # ── warning: 업무시간 확인(멘션 없음) ──
   - name: knittda-warning
@@ -70,7 +70,7 @@ groups:
           summary: "external {{ $labels.target }} 오류 {{ $value | printf \"%.0f\" }}건 / 최근 15분 (>2)"
           description: "대상: s3/openai/flask. 외부 상태·크레딧·네트워크 확인. openai 는 크레딧 부족 이력."
           runbook_url: 'https://tteuda.notion.site/Rule-Book-3b9373d7258680448f5fcf585f44e05a'
-          dashboard_url: 'https://rubymocha2959.grafana.net/d/knittda-overview/knittda-overview?from=now-15m&to=now&timezone=browser&var-datasource=grafanacloud-prom&var-env=$__all&var-slot=$__all&refresh=10s'
+          dashboard_url: 'https://tteuda.grafana.net/d/knittda-overview/knittda-overview?from=now-15m&to=now&timezone=browser&var-datasource=grafanacloud-prom&var-env=$__all&var-slot=$__all&refresh=10s'
 
       - alert: HikariConnectionsPending
         expr: hikaricp_connections_pending{env="prod"} > 0
@@ -82,7 +82,7 @@ groups:
           summary: "[{{ $labels.slot }}] DB 커넥션 대기 {{ $value }} (>0) 5분"
           description: "커넥션 풀 포화/느린 쿼리. jdbc 메트릭·슬로우쿼리 확인."
           runbook_url: 'https://tteuda.notion.site/Rule-Book-3b9373d7258680448f5fcf585f44e05a'
-          dashboard_url: 'https://rubymocha2959.grafana.net/d/knittda-overview/knittda-overview?from=now-15m&to=now&timezone=browser&var-datasource=grafanacloud-prom&var-env=$__all&var-slot=$__all&refresh=10s'
+          dashboard_url: 'https://tteuda.grafana.net/d/knittda-overview/knittda-overview?from=now-15m&to=now&timezone=browser&var-datasource=grafanacloud-prom&var-env=$__all&var-slot=$__all&refresh=10s'
 
       # p99 지연 — 저트래픽에선 샘플 부족으로 신뢰도 낮음 → 알림 보류(대시보드만).
       # baseline(2026-08-18) 확보 후 p95 기준으로 재도입 검토. 활성화하려면 주석 해제.

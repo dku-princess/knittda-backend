@@ -19,7 +19,7 @@
 # 권장 흐름:  ./deploy-silence.sh 20   →  (배포/전환 수행)  →  자동 만료.
 set -euo pipefail
 
-GRAFANA_URL="${GRAFANA_URL:-https://rubymocha2959.grafana.net}"
+GRAFANA_URL="${GRAFANA_URL:-https://tteuda.grafana.net}"
 : "${GRAFANA_TOKEN:?GRAFANA_TOKEN(서비스계정 토큰, alerting 쓰기) 환경변수가 필요합니다}"
 
 MINUTES="${1:-20}"
