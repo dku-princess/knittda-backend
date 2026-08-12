@@ -2,7 +2,7 @@
   "uid": "knittda-overview",
   "title": "knittda — Overview",
   "schemaVersion": 38,
-  "version": 6,
+  "version": 7,
   "time": {
     "from": "now-30m",
     "to": "now"
@@ -252,7 +252,7 @@
     },
     {
       "id": 102,
-      "title": "로그인 (시간당 건수) by method",
+      "title": "로그인 성공 (시간당 건수) by method",
       "type": "timeseries",
       "gridPos": {
         "h": 8,
@@ -267,8 +267,8 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum by (method) (increase(business_auth_login_total{slot=~\"$slot\", env=~\"$env\"}[1h]))",
-          "legendFormat": "{{method}}"
+          "legendFormat": "{{method}}",
+          "expr": "sum by (method) (increase(business_auth_login_total{result=\"success\", slot=~\"$slot\", env=~\"$env\"}[1h]))"
         }
       ]
     },

@@ -1,0 +1,34 @@
+# ─────────────────────────────────────────────────────────────
+# knittda-backend — Business Ops Alert Rules (M4, Prometheus YAML)
+#
+# 기존 시스템 알림(knittda-alerts.yml)과 분리. 비즈니스 이벤트 이상만 별도 import.
+# Import: Grafana Cloud → Alerting → Alert rules → Import alert rules
+#   → Import source: "Prometheus YAML file" → 이 파일 업로드
+#   → Target data source: grafanacloud-rubymocha2959-prom (M2 Cloud Prometheus)
+#
+# 원칙(저트래픽 DAU<10): '급감'이 아니라 '구조적 파손'만 알림. 활동 조건부로 조용한 시간 오탐 방지.
+# ⚠️ 임계는 잠정값 — 2026-08-18 baseline 관찰 후 재조정.
+# 메트릭: business_*_total (M4 계측). 라벨 env(prod/staging)·slot(green/blue/test)은 스크레이프 부여.
+# annotations.runbook_url / dashboard_url → Slack 템플릿(slack-template.txt)이 링크로 렌더.
+# ─────────────────────────────────────────────────────────────
+groups:
+  # ── business: 비즈니스 이벤트 이상(M4) ──
+  - name: knittda-business
+    interval: 1m
+    rules:
+      # 검색 파손 — 검색은 일어나는데(empty≥5) hit가 6h 내내 0 → 검색 파이프라인 전멸 의심.
+      # 활동 조건부(empty 게이트)라 조용한 시간엔 발화 안 함. or vector(0)=hit 시리즈 부재도 0으로 처리.
+      - alert: SearchAllEmpty
+        expr: |
+          (sum(increase(business_search_performed_total{result="hit", env="prod"}[6h])) or vector(0)) == 0
+            and
+          sum(increase(business_search_performed_total{result="empty", env="prod"}[6h])) >= 5
+        for: 10m
+        labels:
+          severity: warning
+          service: knittda
+        annotations:
+          summary: "검색 결과 전멸 — 최근 6h 검색 hit 0건 (empty만 5건 이상)"
+          description: "검색은 발생하는데 결과가 전부 empty. Flask 검색 서버·인덱스·v6→v5→v1 fallback 상태 확인. external ExternalCallErrors(flask)와 교차 점검. 저트래픽 구조적 파손 감지(급감 아님)."
+          runbook_url: 'https://tteuda.notion.site/Rule-Book-3b9373d7258680448f5fcf585f44e05a'
+          dashboard_url: 'https://rubymocha2959.grafana.net/d/knittda-overview/knittda-overview?from=now-6h&to=now&timezone=browser&var-datasource=grafanacloud-prom&var-env=$__all&var-slot=$__all&refresh=10s'
