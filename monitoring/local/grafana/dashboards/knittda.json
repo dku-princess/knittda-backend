@@ -2,7 +2,7 @@
   "uid": "knittda-overview",
   "title": "knittda — Overview",
   "schemaVersion": 38,
-  "version": 7,
+  "version": 8,
   "time": {
     "from": "now-30m",
     "to": "now"
@@ -441,6 +441,94 @@
           "expr": "sum(increase(business_search_performed_total{slot=~\"$slot\", env=~\"$env\"}[24h]))"
         }
       ]
+    },
+    {
+      "id": 110,
+      "title": "API Deprecation 추세",
+      "type": "row",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 53
+      },
+      "panels": []
+    },
+    {
+      "id": 111,
+      "title": "previews 호출 (시간당) — v1(deprecated) vs v2",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 16,
+        "x": 0,
+        "y": 54
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "legendFormat": "{{version}}",
+          "expr": "sum by (version) (increase(api_previews_calls_total{slot=~\"$slot\", env=~\"$env\"}[1h]))"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 10
+          }
+        },
+        "overrides": []
+      },
+      "description": "v1(deprecated)이 0으로 수렴하는지 추적. v2로 이전 진행 상황."
+    },
+    {
+      "id": 112,
+      "title": "최근 7d v1(deprecated) 호출 (0=제거 안전)",
+      "type": "stat",
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 54
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(increase(api_previews_calls_total{version=\"v1\", slot=~\"$slot\", env=~\"$env\"}[7d]))"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          }
+        },
+        "overrides": []
+      },
+      "description": "최근 7일 v1 호출 수. 0이면 v1 엔드포인트 제거 안전 신호(저트래픽이라 창을 길게)."
     }
   ]
 }
