@@ -1,5 +1,6 @@
 package com.example.knittdaserver.service;
 
+import com.example.knittdaserver.common.metrics.BusinessMetrics;
 import com.example.knittdaserver.dto.ReportResponse;
 import com.example.knittdaserver.entity.Record;
 import com.example.knittdaserver.entity.User;
@@ -24,6 +25,7 @@ public class ReportService {
     private final AuthService authService;
     private final RecordRepository recordRepository;
     private final OpenAiService openAiService;
+    private final BusinessMetrics businessMetrics;
 
     public ReportResponse createReport(String token) {
         User user = authService.getUserFromJwt(token);
@@ -125,6 +127,7 @@ public class ReportService {
                 .collect(Collectors.toList());
 
         // 8️⃣ 최종 응답 생성
+        businessMetrics.count("report.created");
         return ReportResponse.builder()
                 .knittingLevel(knittingLevel)
                 .weeklyKnittingCount(weeklyKnittingCount)

@@ -1,5 +1,6 @@
 package com.example.knittdaserver.service;
 
+import com.example.knittdaserver.common.metrics.BusinessMetrics;
 import com.example.knittdaserver.common.response.ApiResponseCode;
 import com.example.knittdaserver.common.response.CustomException;
 import com.example.knittdaserver.dto.*;
@@ -42,6 +43,7 @@ public class ProjectService {
     private final AuthService authService;
     private final S3Service s3Service;
     private final FileUploadService fileUploadService;
+    private final BusinessMetrics businessMetrics;
 
     /**
      * 프로젝트 생성
@@ -96,7 +98,10 @@ public class ProjectService {
             log.warn("[ProjectService] 프로젝트 생성 - 지정/기본 썸네일 모두 없음 - 프로젝트 ID: {}", project.getId());
         }
 
-        return ProjectDto.from(projectRepository.save(project));
+        ProjectDto dto = ProjectDto.from(projectRepository.save(project));
+        businessMetrics.count("project.created", "thumbnail",
+                source == null ? "none" : source.isDefault() ? "default" : "custom");
+        return dto;
     }
 
     /** 썸네일 원본 정보(URL + 기본이미지 여부). */

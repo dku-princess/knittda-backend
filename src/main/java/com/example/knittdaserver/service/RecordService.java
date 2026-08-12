@@ -1,5 +1,6 @@
 package com.example.knittdaserver.service;
 
+import com.example.knittdaserver.common.metrics.BusinessMetrics;
 import com.example.knittdaserver.common.metrics.ExternalCallMetrics;
 import com.example.knittdaserver.common.response.ApiResponseCode;
 import com.example.knittdaserver.common.response.CustomException;
@@ -44,6 +45,7 @@ public class RecordService {
     private final OpenAiService openAiService;
     private final ObjectMapper objectMapper;
     private final ExternalCallMetrics externalCallMetrics;
+    private final BusinessMetrics businessMetrics;
     
     @Value("${flask.server.url}")
     private String flaskServerUrl;
@@ -111,7 +113,11 @@ public class RecordService {
         
         // 성공 로그
         log.info("Record 생성 완료 - recordId: {}", savedRecord.getId());
-        
+
+        businessMetrics.count("record.created",
+                "status", project.getStatus() == ProjectStatus.DONE ? "done" : "in_progress",
+                "has_image", String.valueOf(files != null && !files.isEmpty()));
+
         return RecordResponse.from(savedRecord);
     }
 

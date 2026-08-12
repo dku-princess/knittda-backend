@@ -1,5 +1,6 @@
 package com.example.knittdaserver.service;
 
+import com.example.knittdaserver.common.metrics.BusinessMetrics;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.stereotype.Service;
@@ -34,6 +35,7 @@ public class FeedService {
     private final RecordRepository recordRepository;
     private final com.example.knittdaserver.service.SearchLogService searchLogService;
     private final ExternalCallMetrics externalCallMetrics;
+    private final BusinessMetrics businessMetrics;
     
     @Value("${flask.server.url}")
     private String flaskServerUrl;
@@ -91,6 +93,11 @@ public class FeedService {
             .collect(Collectors.toList());
         log.info("[FeedService] 검색 결과 recordId 목록 - searchId: {}, recordIds: {}", searchId, resultRecordIds);
         
+        // 비즈니스 메트릭: 검색 실행 건수 (버전별, 결과 유무별)
+        businessMetrics.count("search.performed",
+                "version", result.getVersion(),
+                "result", result.getPage().getTotalElements() == 0 ? "empty" : "hit");
+
         // SearchResponse 생성 (실제 사용된 버전 포함)
         return SearchResponse.from(result.getPage(), searchId, result.getVersion());
     }

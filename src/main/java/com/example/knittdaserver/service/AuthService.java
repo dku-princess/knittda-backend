@@ -1,5 +1,6 @@
 package com.example.knittdaserver.service;
 
+import com.example.knittdaserver.common.metrics.BusinessMetrics;
 import com.example.knittdaserver.common.response.ApiResponseCode;
 import com.example.knittdaserver.common.response.CustomException;
 import com.example.knittdaserver.dto.AuthResponse;
@@ -42,6 +43,7 @@ public class AuthService {
     private final WebClient.Builder webClientBuilder;
     private final FirebaseAuth firebaseAuth;
     private final S3Service s3Service;
+    private final BusinessMetrics businessMetrics;
 
     private final String KAKAO_USER_INFO_URL = "https://kapi.kakao.com/v2/user/me";
 
@@ -62,10 +64,12 @@ public class AuthService {
                     .profileImageUrl(userDto.getProfileImageUrl())
                     .build();
             userRepository.save(user);
+            businessMetrics.count("user.signup", "provider", "kakao");
         }
 
         String jwt = jwtUtil.generateToken(user.getId());
         userDto = UserDto.from(user);
+        businessMetrics.count("auth.login", "method", "kakao");
         return new AuthResponse(jwt, userDto);
     }
 
@@ -85,10 +89,12 @@ public class AuthService {
                     .profileImageUrl(userDto.getProfileImageUrl())
                     .build();
             userRepository.save(user);
+            businessMetrics.count("user.signup", "provider", "apple");
         }
 
         String jwt = jwtUtil.generateToken(user.getId());
         userDto = UserDto.from(user);
+        businessMetrics.count("auth.login", "method", "apple");
         return new AuthResponse(jwt, userDto);
     }
 
@@ -199,6 +205,8 @@ public class AuthService {
             Long userId = jwtUtil.validateAndExtractUserId(jwt);
             User user = userRepository.findById(userId)
                     .orElseThrow(() -> new CustomException(ApiResponseCode.USER_NOT_FOUND));
+            // 토큰 기반 자동 로그인(/me = AutoLoginUseCase). 토큰 검증 성공 지점에서만 계측.
+            businessMetrics.count("auth.login", "method", "auto");
             return UserResponse.from(user);
         }catch (Exception e) {
             throw new CustomException(ApiResponseCode.INVALID_TOKEN);
