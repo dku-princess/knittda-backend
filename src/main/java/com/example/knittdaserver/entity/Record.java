@@ -50,6 +50,7 @@ public class Record {
 
     @Builder.Default
     @OneToMany(mappedBy = "record", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @OrderBy("imageOrder ASC")
     private List<Image> images = new ArrayList<>(0);
 
 
