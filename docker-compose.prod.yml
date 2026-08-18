@@ -17,6 +17,7 @@ services:
       LC_ALL: ko_KR.UTF-8
       FIREBASE_SERVICE_ACCOUNT_KEY: ${FIREBASE_SERVICE_ACCOUNT_KEY}
       SERVER_PORT: 8080
+      SPRINGDOC_SERVER_URL: http://13.125.122.193
     ports:
       - "8081:8080"
     restart: always
@@ -40,6 +41,7 @@ services:
       LC_ALL: ko_KR.UTF-8
       FIREBASE_SERVICE_ACCOUNT_KEY: ${FIREBASE_SERVICE_ACCOUNT_KEY}
       SERVER_PORT: 8080
+      SPRINGDOC_SERVER_URL: http://13.125.122.193
     ports:
       - "8082:8080"
     restart: always
@@ -75,6 +77,7 @@ services:
       LC_ALL: ko_KR.UTF-8
       FIREBASE_SERVICE_ACCOUNT_KEY: ${FIREBASE_SERVICE_ACCOUNT_KEY}
       SERVER_PORT: 8080
+      SPRINGDOC_SERVER_URL: http://13.125.122.193:8083
     ports:
       - "8083:8080"
     restart: always
@@ -123,6 +126,7 @@ services:
     environment:
       # SWAGGER_JSON_URL: "http://13.125.122.193:8055/server/specs/oas"
       SWAGGER_JSON_URL: /directus-oas
+      PERSIST_AUTHORIZATION: "true"
     ports:
       - "8088:8080"
 

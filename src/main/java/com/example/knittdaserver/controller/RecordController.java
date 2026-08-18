@@ -9,6 +9,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -34,7 +35,7 @@ public class RecordController {
     @PostMapping(value = "/", consumes = {"multipart/form-data"})
     @Operation(summary = "새로운 Record 생성", description = "새로운 Record를 생성합니다.")
     public ResponseEntity<ApiResponse<RecordResponse>> createRecord(
-            @RequestHeader(name = "Authorization") String token,
+            @Parameter(hidden = true) @RequestHeader(name = "Authorization") String token,
             @RequestPart(value = "record") String recordJson,
             @RequestPart(value = "files", required = false) List<MultipartFile> files
     )  {
@@ -54,7 +55,7 @@ public class RecordController {
     @Operation(summary = "개인 Record 조회", description = "개인의 모든 Record를 조회합니다.")
     @GetMapping("/")
     public ResponseEntity<ApiResponse<List<RecordResponse>>> getAllRecords(
-            @RequestHeader(name = "Authorization") String token
+            @Parameter(hidden = true) @RequestHeader(name = "Authorization") String token
     ){
         List<RecordResponse> records = recordService.getAllRecords(token);
         return ResponseEntity.ok(ApiResponse.success(records));
@@ -82,7 +83,7 @@ public class RecordController {
     @Operation(summary = "Record 업데이트", description = "Record 정보를 업데이트합니다.")
     @PutMapping(value = "/", consumes = {"multipart/form-data"})
     public ResponseEntity<ApiResponse<RecordResponse>> updateRecord(
-            @RequestHeader(name = "Authorization") String token,
+            @Parameter(hidden = true) @RequestHeader(name = "Authorization") String token,
             @RequestPart(value = "record") String updateRecordJson,
             @RequestPart(value = "deleteImageIds", required = false) String deleteImageIdsJson,
             @RequestPart(value = "files", required = false) List<MultipartFile> files
@@ -121,7 +122,7 @@ public class RecordController {
     @Operation(summary = "Record 삭제", description = "Record ID를 기반으로 Record를 삭제합니다.")
     @DeleteMapping("/{recordId}")
     public ResponseEntity<ApiResponse<Void>> deleteRecordById(
-            @RequestHeader(name = "Authorization") String token,
+            @Parameter(hidden = true) @RequestHeader(name = "Authorization") String token,
             @PathVariable Long recordId
     ){
         recordService.deleteRecordById(token, recordId);
