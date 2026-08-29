@@ -1,6 +1,7 @@
 package com.example.knittdaserver.service;
 
 import com.example.knittdaserver.common.metrics.BusinessMetrics;
+import com.example.knittdaserver.common.tracing.SentryTracer;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.stereotype.Service;
@@ -35,6 +36,7 @@ public class FeedService {
     private final RecordRepository recordRepository;
     private final com.example.knittdaserver.service.SearchLogService searchLogService;
     private final ExternalCallMetrics externalCallMetrics;
+    private final SentryTracer sentryTracer;
     private final BusinessMetrics businessMetrics;
     
     @Value("${flask.server.url}")
@@ -55,7 +57,10 @@ public class FeedService {
      * @return FeedDto의 Page
      */
     public Page<FeedDto> getFeedRecords(org.springframework.data.domain.Pageable pageable) {
-        return recordRepository.findAll(pageable)
+        Page<Record> records = sentryTracer.span("db_fetch", "recordRepository.findAll",
+            () -> recordRepository.findAll(pageable));
+
+        return sentryTracer.span("mapping", "Record -> FeedDto", () -> records
             .map(record -> FeedDto.builder()
                 .userName(record.getProject().getUser().getNickname())
                 .profileImageUrl(record.getProject().getUser().getProfileImageUrl())
@@ -64,7 +69,7 @@ public class FeedService {
                 .designTitle(record.getProject().getDesign().getTitle())
                 .designer(record.getProject().getDesign().getDesigner())
                 .record(RecordResponse.from(record))
-                .build());
+                .build()));
     }
 
     /**
