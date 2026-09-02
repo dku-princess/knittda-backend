@@ -385,6 +385,8 @@ public class ProjectService {
                 .projectId(project.getId())
                 .userName(project.getUser().getNickname())
                 .projectName(project.getNickname())
+                // 클라이언트 하위 호환용 고정값 0 — ProjectPreviewResponse.recordNum 주석 참고.
+                .recordNum(0)
                 .recentImageUrls(imageUrls)
                 .recentImageUrl(primaryImageUrl)
                 .lastRecordAt(project.getLastRecordAt())
