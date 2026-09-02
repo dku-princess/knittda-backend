@@ -41,18 +41,21 @@ public class RecordResponse {
     private List<ImageDto> images;
 
     public static RecordResponse from(Record record) {
+        return from(record, record.getImages().stream()
+                .map(ImageDto::from)
+                .collect(Collectors.toList()));
+    }
+
+    // images를 별도 배치 쿼리로 이미 가져온 경우, record.getImages()(LAZY 컬렉션) 접근을 피하기 위한 오버로드.
+    public static RecordResponse from(Record record, List<ImageDto> images) {
         return RecordResponse.builder()
                 .id(record.getId())
-                .projectId(record.getProject().getId()) 
+                .projectId(record.getProject().getId())
                 .recordStatus(record.getRecordStatus())
                 .tags(record.getTags() != null ? record.getTags() : new ArrayList<>())
                 .comment(record.getComment())
                 .createdAt(record.getCreatedAt())
-                .images(
-                        record.getImages().stream()
-                                .map(ImageDto::from)
-                                .collect(Collectors.toList())
-                )
+                .images(images != null ? images : new ArrayList<>())
                 .build();
     }
 }

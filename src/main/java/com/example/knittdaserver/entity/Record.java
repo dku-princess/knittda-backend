@@ -4,6 +4,7 @@ import com.example.knittdaserver.dto.UpdateRecordRequest;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.BatchSize;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -32,7 +33,11 @@ public class Record {
     @Column(nullable = false)
     private RecordStatus recordStatus;
 
-    @ElementCollection(fetch = FetchType.EAGER)
+    // LAZY + BatchSize: 필요한 곳에서만 로딩하되, 한 쿼리에서 여러 record의 tags를
+    // 개별 N+1 대신 IN절 한 번으로 묶어 가져온다. size는 페이지 상한(size=2000)보다
+    // 작지만 record당 태그가 1~4개뿐이라 결과셋 부담 없이 실사용 트래픽을 커버하는 값.
+    @ElementCollection(fetch = FetchType.LAZY)
+    @BatchSize(size = 100)
     @CollectionTable(name = "record_tags", joinColumns = @JoinColumn(name = "record_id"))
     @Column(name = "tags")
     @Builder.Default private List<String> tags = new ArrayList<>();
