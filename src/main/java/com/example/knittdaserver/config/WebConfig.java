@@ -15,6 +15,8 @@ public class WebConfig implements WebMvcConfigurer {
         registry.addMapping("/**")
             .allowedOriginPatterns(
                 "http://localhost:*", // 모든 포트의 localhost 허용
+                "http://13.125.122.193", // EC2 서버, 기본 포트(80, nginx) — 포트 생략 origin
+                "http://13.125.122.193:*", // EC2 서버, 포트 명시 origin (staging 등 nginx 미경유 포트 직접 접근용)
                 "https://knittda-ai-feed.vercel.app",
                 "https://knittda-ai-feed.vercel.app/*"
             )

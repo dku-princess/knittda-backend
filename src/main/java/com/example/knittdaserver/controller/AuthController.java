@@ -12,6 +12,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -73,6 +74,7 @@ public class AuthController {
                     )
             }
     )
+    @SecurityRequirements
     @GetMapping(value = "/kakao", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<ApiResponse<AuthResponse>> loginKakao(
             @RequestHeader(name = "Authorization") String token) {
@@ -91,6 +93,7 @@ public class AuthController {
                             content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = AuthResponse.class))
                     )})
             
+    @SecurityRequirements
     @GetMapping(value = "/admin", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<ApiResponse<AuthResponse>> loginAdmin() {
         AuthResponse authResponse = authService.loginForAdmin();
@@ -126,6 +129,7 @@ public class AuthController {
                     )
             }
     )
+    @SecurityRequirements
     @GetMapping(value = "/apple", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<ApiResponse<AuthResponse>> loginApple(
             @RequestHeader(name = "Authorization") String token,
@@ -143,13 +147,6 @@ public class AuthController {
     @Operation(
             summary = "JWT 사용자 정보 조회",
             description = "JWT 토큰을 통해 사용자 정보를 조회합니다.",
-            parameters = {
-                    @Parameter(
-                            name = "Authorization",
-                            description = "Bearer Token (예: Bearer {token})",
-                            required = true
-                    )
-            },
             responses = {
                     @io.swagger.v3.oas.annotations.responses.ApiResponse(
                             responseCode = "200",
@@ -168,7 +165,7 @@ public class AuthController {
     )
     @GetMapping("/me")
     public ResponseEntity<ApiResponse<UserResponse>> getUserInfoFromJwt(
-            @RequestHeader(name = "Authorization") String token) {
+            @Parameter(hidden = true) @RequestHeader(name = "Authorization") String token) {
 
         String accessToken = token.replace("Bearer ", "");
         UserResponse user = authService.getUserResponseFromJwt(accessToken);
@@ -178,7 +175,7 @@ public class AuthController {
     @Operation(summary = "Update nickname", description = "JWT auth. JSON body: userId, nickname.")
     @PutMapping(value = "/me/nickname", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<ApiResponse<UserResponse>> updateNickname(
-            @RequestHeader(name = "Authorization") String token,
+            @Parameter(hidden = true) @RequestHeader(name = "Authorization") String token,
             @RequestBody UpdateNicknameRequest request) {
         UserResponse user = authService.updateNickname(token, request);
         return ResponseEntity.ok(ApiResponse.success(user));
@@ -187,7 +184,7 @@ public class AuthController {
     @Operation(summary = "Upload profile image", description = "Multipart part name: image")
     @PostMapping(value = "/profile-image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<UserResponse>> uploadProfileImage(
-            @RequestHeader(name = "Authorization") String token,
+            @Parameter(hidden = true) @RequestHeader(name = "Authorization") String token,
             @RequestPart("image") MultipartFile image) {
         String accessToken = token.replace("Bearer ", "");
         UserResponse user = authService.uploadProfileImage(accessToken, image);
@@ -196,7 +193,7 @@ public class AuthController {
 
     @DeleteMapping("/signout")
     public ResponseEntity<ApiResponse<Void>> signout(
-            @RequestHeader(name = "Authorization") String token) {
+            @Parameter(hidden = true) @RequestHeader(name = "Authorization") String token) {
 
         String accessToken = token.replace("Bearer ", "");
         authService.deleteUser(accessToken);

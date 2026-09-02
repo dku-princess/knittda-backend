@@ -38,7 +38,9 @@ public enum ApiResponseCode {
     SERVER_ERROR("E500", "서버 내부 오류입니다", HttpStatus.INTERNAL_SERVER_ERROR),
 
     // 이미지 업로드 관련
-    IMAGE_UPLOAD_FAILED("I001", "이미지 업로드에 실패했습니다", HttpStatus.INTERNAL_SERVER_ERROR);
+    IMAGE_UPLOAD_FAILED("I001", "이미지 업로드에 실패했습니다", HttpStatus.INTERNAL_SERVER_ERROR),
+    IMAGE_NOT_FOUND("I404", "이미지를 찾을 수 없습니다", HttpStatus.NOT_FOUND),
+    IMAGE_ORDER_INVALID("I002", "이미지 순서 정보가 올바르지 않습니다", HttpStatus.BAD_REQUEST);
 
     private final String code;
     private final String message;

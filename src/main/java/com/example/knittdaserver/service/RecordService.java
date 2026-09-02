@@ -5,6 +5,7 @@ import com.example.knittdaserver.common.metrics.ExternalCallMetrics;
 import com.example.knittdaserver.common.response.ApiResponseCode;
 import com.example.knittdaserver.common.response.CustomException;
 import com.example.knittdaserver.dto.CreateRecordRequest;
+import com.example.knittdaserver.dto.ImageOrderItem;
 import com.example.knittdaserver.dto.RecordResponse;
 import com.example.knittdaserver.dto.UpdateRecordRequest;
 import com.example.knittdaserver.entity.*;
@@ -29,6 +30,7 @@ import reactor.core.publisher.Mono;
 
 import jakarta.transaction.Transactional;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 
 @Slf4j
@@ -219,8 +221,8 @@ public class RecordService {
         if (!record.getProject().isOwnedBy(user.getId())) {
             throw new CustomException(ApiResponseCode.FORBIDDEN_ACCESS);
         }
-        // 삭제할 사진이 있을 경우
-        if (deleteImageIds != null) {
+        // 1. 삭제할 사진 처리 (deleteImageIds 우선)
+        if (deleteImageIds != null && !deleteImageIds.isEmpty()) {
             List<Image> imagesToDelete = imageRepository.findAllById(deleteImageIds);
             for (Image image : imagesToDelete) {
                 s3Service.deleteFile(image.getImageUrl());
@@ -228,25 +230,27 @@ public class RecordService {
             }
             record.getImages().removeAll(imagesToDelete);
         }
-        // 추가할 사진이 있을 경우
+
+        // 2. 신규 파일 업로드 (imageOrder는 아직 미정 — 3단계에서 재부여)
+        List<Image> uploadedImages = new ArrayList<>();
         if (files != null) {
-            log.info(files.toString());
-            for (int i = 0; i < files.size(); i++) {
-                String imageUrl = null;
+            for (MultipartFile file : files) {
+                String imageUrl;
                 try {
-                    imageUrl = fileUploadService.uploadImageAsWebp(files.get(i));
+                    imageUrl = fileUploadService.uploadImageAsWebp(file);
                 } catch (Exception e) {
                     e.printStackTrace();
                     throw new CustomException(ApiResponseCode.IMAGE_UPLOAD_FAILED);
                 }
-                Image image = Image.builder()
+                uploadedImages.add(Image.builder()
                         .record(record)
                         .imageUrl(imageUrl)
-                        .imageOrder(i + 1)
-                        .build();
-                record.getImages().add(image);
+                        .build());
             }
         }
+
+        // 3. 최종 순서(imageOrder) 재부여
+        applyImageOrder(record, request.getImages(), uploadedImages);
         // Record 업데이트
         record.updateFromRequest(request);
         // 임베딩 재생성
@@ -261,6 +265,77 @@ public class RecordService {
             // 임베딩 생성 실패해도 Record는 저장
         }
         return RecordResponse.from(recordRepository.save(record));
+    }
+
+    /**
+     * 수정 시 이미지의 최종 표시 순서(imageOrder, 1-base)를 재부여한다. (제안 A)
+     *
+     * <p>{@code orderItems}(record.images)의 배열 순서가 곧 최종 표시 순서이며, 서버가 그 위치로
+     * imageOrder를 통째로 재계산한다(증분 갱신이 아니라 전체 재부여 → gap·중복 원천 차단).
+     *
+     * <ul>
+     *   <li>orderItems == null : 순서 미지정. 기존 이미지 순서를 유지하고 신규 파일만 뒤에 append.</li>
+     *   <li>orderItems == []   : 위와 동일(빈 배열은 전체 삭제가 아님).</li>
+     *   <li>그 외              : orderItems 순서대로 existing/new 를 배치. 배열에 빠진 신규는 방어적으로 tail append.</li>
+     * </ul>
+     *
+     * @param record        대상 Record (삭제 반영 후 상태)
+     * @param orderItems    클라가 보낸 최종 순서 배열 (record.images), null 허용
+     * @param uploadedImages 이번 요청에서 업로드된 신규 Image들 (files 인덱스 순서, 아직 record.images 미포함)
+     */
+    private void applyImageOrder(Record record, List<ImageOrderItem> orderItems, List<Image> uploadedImages) {
+        // 순서 미지정: 기존 순서 유지 + 신규는 max+1 부터 뒤에 append
+        if (orderItems == null || orderItems.isEmpty()) {
+            int next = record.getImages().stream()
+                    .map(Image::getImageOrder)
+                    .filter(java.util.Objects::nonNull)
+                    .max(Integer::compareTo)
+                    .orElse(0) + 1;
+            for (Image img : uploadedImages) {
+                img.setImageOrder(next++);
+                record.getImages().add(img);
+            }
+            return;
+        }
+
+        // 기존 이미지 id -> 엔티티 매핑 (삭제 반영 후 남아있는 것만)
+        java.util.Map<Long, Image> existingById = new java.util.HashMap<>();
+        for (Image img : record.getImages()) {
+            existingById.put(img.getId(), img);
+        }
+
+        java.util.Set<Image> placed = new java.util.HashSet<>();
+        int pos = 1;
+        for (ImageOrderItem item : orderItems) {
+            Image target;
+            if (item.isNew()) {
+                Integer idx = item.getIndex();
+                if (idx == null || idx < 0 || idx >= uploadedImages.size()) {
+                    throw new CustomException(ApiResponseCode.IMAGE_ORDER_INVALID);
+                }
+                target = uploadedImages.get(idx);
+            } else if (item.isExisting()) {
+                target = existingById.get(item.getId());
+                if (target == null) {
+                    // 삭제되었거나 이 Record 소유가 아닌 id → 무시(delete 우선 원칙)
+                    continue;
+                }
+            } else {
+                throw new CustomException(ApiResponseCode.IMAGE_ORDER_INVALID);
+            }
+            target.setImageOrder(pos++);
+            placed.add(target);
+        }
+
+        // 배열에 실리지 않은 신규 이미지는 방어적으로 뒤에 append
+        for (Image img : uploadedImages) {
+            if (!placed.contains(img)) {
+                img.setImageOrder(pos++);
+            }
+            if (!record.getImages().contains(img)) {
+                record.getImages().add(img);
+            }
+        }
     }
 
     /**
