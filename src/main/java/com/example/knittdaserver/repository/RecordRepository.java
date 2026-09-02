@@ -47,16 +47,4 @@ public interface RecordRepository extends JpaRepository<Record, Long> {
     @EntityGraph(attributePaths = {"project", "project.user", "project.design"})
     @Query("SELECT DISTINCT r FROM Record r")
     List<Record> findAllWithAssociations();
-
-    // N+1 방지: 프로젝트별 record 개수를 한 번의 집계 쿼리로 조회.
-    // mapToPreviews 에서 project.getRecords().size() 대신 사용.
-    @Query("SELECT r.project.id AS projectId, COUNT(r.id) AS cnt " +
-            "FROM Record r WHERE r.project.id IN :projectIds " +
-            "GROUP BY r.project.id")
-    List<RecordCountProjection> countByProjectIds(@Param("projectIds") Collection<Long> projectIds);
-
-    interface RecordCountProjection {
-        Long getProjectId();
-        Long getCnt();
-    }
 }

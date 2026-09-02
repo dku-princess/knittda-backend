@@ -11,7 +11,6 @@ import com.example.knittdaserver.repository.DefaultProjectThumbnailRepository;
 import com.example.knittdaserver.repository.DesignRepository;
 import com.example.knittdaserver.repository.ImageRepository;
 import com.example.knittdaserver.repository.ProjectRepository;
-import com.example.knittdaserver.repository.RecordRepository;
 import com.example.knittdaserver.repository.ThumbnailImageRepository;
 
 import lombok.AllArgsConstructor;
@@ -38,7 +37,6 @@ public class ProjectService {
     private final ProjectRepository projectRepository;
     private final DesignRepository designRepository;
     private final ImageRepository imageRepository;
-    private final RecordRepository recordRepository;
     private final ThumbnailImageRepository thumbnailImageRepository;
     private final DefaultProjectThumbnailRepository defaultProjectThumbnailRepository;
     private final AuthService authService;
@@ -349,13 +347,7 @@ public class ProjectService {
 
         List<Long> projectIds = projects.stream().map(Project::getId).toList();
 
-        // N+1 방지 (1): record 개수를 단일 집계 쿼리로 조회.
-        Map<Long, Long> recordCountByProjectId = recordRepository.countByProjectIds(projectIds).stream()
-                .collect(java.util.stream.Collectors.toMap(
-                        RecordRepository.RecordCountProjection::getProjectId,
-                        RecordRepository.RecordCountProjection::getCnt));
-
-        // N+1 방지 (2): 프로젝트별 "최신 record 의 첫 이미지" 를 단일 윈도우 함수 쿼리로 조회.
+        // N+1 방지: 프로젝트별 "최신 record 의 첫 이미지" 를 단일 윈도우 함수 쿼리로 조회.
         // project.getRecords() 컬렉션을 호출하지 않으므로 records lazy load 도 함께 제거됨.
         Map<Long, String> latestImageByProjectId = imageRepository.findLatestImagePerProject(projectIds).stream()
                 .collect(java.util.stream.Collectors.toMap(
@@ -372,13 +364,10 @@ public class ProjectService {
                     ? List.of()
                     : List.of(primaryImageUrl);
 
-            long recordNum = recordCountByProjectId.getOrDefault(project.getId(), 0L);
-
             responses.add(ProjectPreviewResponse.builder()
                 .projectId(project.getId())
                 .userName(project.getUser().getNickname())
                 .projectName(project.getNickname())
-                .recordNum((int) recordNum)
                 .recentImageUrls(imageUrls)
                 .recentImageUrl(primaryImageUrl)
                 .lastRecordAt(project.getLastRecordAt())
