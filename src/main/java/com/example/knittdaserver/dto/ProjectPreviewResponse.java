@@ -16,7 +16,6 @@ public class ProjectPreviewResponse {
     private Long projectId;
     private String userName;
     private String projectName;
-    private int recordNum;
     private LocalDateTime lastRecordAt;
 
     // DEPRECATED: 2026-06-19. 클라이언트는 recentImageUrl(단일) 사용으로 마이그레이션.
