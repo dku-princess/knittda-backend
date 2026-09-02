@@ -14,9 +14,6 @@ import java.util.List;
 import java.util.Set;
 
 // created_at 인덱스: /feed 기본 정렬(createdAt DESC)이 필터 없이 전체 테이블을 정렬해야 해서 추가.
-// ddl-auto=update 환경(local, staging)에서는 Hibernate가 자동 생성하지만,
-// prod(ddl-auto=validate)에서는 자동 생성되지 않으므로 sql/2026-09-02_add_index_record_created_at.sql을
-// 배포 전 RDS(knittda_db)에 수동으로 실행해야 한다 (Flyway 미도입, 수동 운영).
 @Entity
 @Table(name = "record", indexes = {
         @Index(name = "idx_record_created_at", columnList = "created_at")
@@ -40,9 +37,6 @@ public class Record {
     @Column(nullable = false)
     private RecordStatus recordStatus;
 
-    // LAZY + BatchSize: 필요한 곳에서만 로딩하되, 한 쿼리에서 여러 record의 tags를
-    // 개별 N+1 대신 IN절 한 번으로 묶어 가져온다. size는 페이지 상한(size=2000)보다
-    // 작지만 record당 태그가 1~4개뿐이라 결과셋 부담 없이 실사용 트래픽을 커버하는 값.
     @ElementCollection(fetch = FetchType.LAZY)
     @BatchSize(size = 100)
     @CollectionTable(name = "record_tags", joinColumns = @JoinColumn(name = "record_id"))
