@@ -11,6 +11,7 @@ import com.example.knittdaserver.repository.DefaultProjectThumbnailRepository;
 import com.example.knittdaserver.repository.DesignRepository;
 import com.example.knittdaserver.repository.ImageRepository;
 import com.example.knittdaserver.repository.ProjectRepository;
+import com.example.knittdaserver.repository.RecordRepository;
 import com.example.knittdaserver.repository.ThumbnailImageRepository;
 
 import lombok.AllArgsConstructor;
@@ -24,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -37,6 +39,7 @@ public class ProjectService {
     private final ProjectRepository projectRepository;
     private final DesignRepository designRepository;
     private final ImageRepository imageRepository;
+    private final RecordRepository recordRepository;
     private final ThumbnailImageRepository thumbnailImageRepository;
     private final DefaultProjectThumbnailRepository defaultProjectThumbnailRepository;
     private final AuthService authService;
@@ -347,16 +350,27 @@ public class ProjectService {
 
         List<Long> projectIds = projects.stream().map(Project::getId).toList();
 
-        // N+1 방지: 프로젝트별 "최신 record 의 첫 이미지" 를 단일 윈도우 함수 쿼리로 조회.
-        // project.getRecords() 컬렉션을 호출하지 않으므로 records lazy load 도 함께 제거됨.
-        Map<Long, String> latestImageByProjectId = imageRepository.findLatestImagePerProject(projectIds).stream()
+        // N+1 방지 (1단계): 프로젝트별 "최신 record" id 를 단일 윈도우 함수 쿼리로 조회.
+        // record 레벨에서만 스캔하므로(image 전체를 훑지 않음) 이전 방식보다 스캔량이 훨씬 작음.
+        Map<Long, Long> latestRecordIdByProjectId = recordRepository.findLatestRecordIdPerProject(projectIds).stream()
                 .collect(java.util.stream.Collectors.toMap(
-                        ImageRepository.ProjectLatestImageProjection::getProjectId,
-                        ImageRepository.ProjectLatestImageProjection::getImageUrl));
+                        RecordRepository.ProjectLatestRecordProjection::getProjectId,
+                        RecordRepository.ProjectLatestRecordProjection::getRecordId));
+
+        // N+1 방지 (2단계): 1단계에서 나온 record 들의 첫 번째(imageOrder=1) 이미지만 조회.
+        // record 당 이미지가 5장 이내라 record_id 목록 크기(최대 페이지 크기)만큼만 스캔하면 됨.
+        Collection<Long> latestRecordIds = latestRecordIdByProjectId.values();
+        Map<Long, String> firstImageByRecordId = latestRecordIds.isEmpty()
+                ? Map.of()
+                : imageRepository.findFirstImageByRecordIds(latestRecordIds).stream()
+                        .collect(java.util.stream.Collectors.toMap(
+                                ImageRepository.RecordFirstImageProjection::getRecordId,
+                                ImageRepository.RecordFirstImageProjection::getImageUrl));
 
         List<ProjectPreviewResponse> responses = new ArrayList<>(projects.size());
         for (Project project : projects) {
-            String primaryImageUrl = resolvePrimaryImageUrl(project, latestImageByProjectId);
+            Long latestRecordId = latestRecordIdByProjectId.get(project.getId());
+            String primaryImageUrl = resolvePrimaryImageUrl(project, latestRecordId, firstImageByRecordId);
 
             // 구버전 클라이언트 호환을 위해 List[0] 접근이 동작하도록 단일 원소 리스트 유지.
             // 신버전 클라이언트는 recentImageUrl(단일) 필드를 사용.
@@ -377,10 +391,10 @@ public class ProjectService {
         return responses;
     }
 
-    // 대표 이미지 우선순위: 사전 조회된 최신 record 이미지 1장 → 없으면 thumbnail → 없으면 null.
+    // 대표 이미지 우선순위: 최신 record 의 첫 번째(imageOrder=1) 이미지 → 없으면 thumbnail → 없으면 null.
     // thumbnail 은 ProjectRepository 의 @EntityGraph 로 이미 fetch 되어 있어 추가 쿼리 없음.
-    private String resolvePrimaryImageUrl(Project project, Map<Long, String> latestImageByProjectId) {
-        String latest = latestImageByProjectId.get(project.getId());
+    private String resolvePrimaryImageUrl(Project project, Long latestRecordId, Map<Long, String> firstImageByRecordId) {
+        String latest = latestRecordId == null ? null : firstImageByRecordId.get(latestRecordId);
         if (latest != null) {
             return latest;
         }
