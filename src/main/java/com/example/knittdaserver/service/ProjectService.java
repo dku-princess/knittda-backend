@@ -359,13 +359,16 @@ public class ProjectService {
 
         // N+1 방지 (2단계): 1단계에서 나온 record 들의 첫 번째(imageOrder=1) 이미지만 조회.
         // record 당 이미지가 5장 이내라 record_id 목록 크기(최대 페이지 크기)만큼만 스캔하면 됨.
+        // 데이터 결함으로 한 record 에 imageOrder=1 이 중복될 수 있어(RecordService.applyImageOrder
+        // 참고), merge 함수로 먼저 만난 값(쿼리가 id ASC 로 정렬해줌)을 유지하고 예외 없이 무시한다.
         Collection<Long> latestRecordIds = latestRecordIdByProjectId.values();
         Map<Long, String> firstImageByRecordId = latestRecordIds.isEmpty()
                 ? Map.of()
                 : imageRepository.findFirstImageByRecordIds(latestRecordIds).stream()
                         .collect(java.util.stream.Collectors.toMap(
                                 ImageRepository.RecordFirstImageProjection::getRecordId,
-                                ImageRepository.RecordFirstImageProjection::getImageUrl));
+                                ImageRepository.RecordFirstImageProjection::getImageUrl,
+                                (first, duplicate) -> first));
 
         List<ProjectPreviewResponse> responses = new ArrayList<>(projects.size());
         for (Project project : projects) {

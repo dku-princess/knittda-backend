@@ -16,8 +16,11 @@ public interface ImageRepository extends JpaRepository<Image, Long> {
 
     // mapToPreviews 2단계: 주어진 record 들의 첫 번째(imageOrder=1) 이미지만 조회.
     // record 당 이미지가 5장 이내라 record_id 필터만으로 충분히 가벼움 (윈도우 함수 불필요).
+    // 데이터 결함으로 한 record 에 imageOrder=1 이 중복될 수 있어 id ASC 로 정렬해
+    // (호출부에서 첫 번째로 만난 값을 채택하는 방식으로) 결정적으로 하나만 고르도록 한다.
     @Query("SELECT i.record.id AS recordId, i.imageUrl AS imageUrl " +
-            "FROM Image i WHERE i.record.id IN :recordIds AND i.imageOrder = 1")
+            "FROM Image i WHERE i.record.id IN :recordIds AND i.imageOrder = 1 " +
+            "ORDER BY i.record.id ASC, i.id ASC")
     List<RecordFirstImageProjection> findFirstImageByRecordIds(@Param("recordIds") Collection<Long> recordIds);
 
     interface RecordFirstImageProjection {
