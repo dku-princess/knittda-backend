@@ -14,21 +14,17 @@ public interface ImageRepository extends JpaRepository<Image, Long> {
     List<Image> findByRecordProjectIdOrderByCreatedAtDesc(Long projectId);
     List<Image> findTop1ByRecordIdInOrderByCreatedAtDesc(List<Long> recordIds);
 
-    // N+1 방지: 여러 프로젝트의 "최신 record 의 첫 이미지" 를 단일 native query 로 조회.
-    // 윈도우 함수(ROW_NUMBER) 로 project_id 별 가장 최근 image 1건만 추림. MySQL 8+ 필요.
-    @Query(value =
-            "SELECT t.project_id AS projectId, t.image_url AS imageUrl FROM (" +
-            "  SELECT r.project_id, i.image_url, " +
-            "         ROW_NUMBER() OVER (PARTITION BY r.project_id ORDER BY i.created_at DESC) AS rn " +
-            "  FROM image i " +
-            "  JOIN record r ON i.record_id = r.id " +
-            "  WHERE r.project_id IN (:projectIds)" +
-            ") t WHERE t.rn = 1",
-            nativeQuery = true)
-    List<ProjectLatestImageProjection> findLatestImagePerProject(@Param("projectIds") Collection<Long> projectIds);
+    // mapToPreviews 2단계: 주어진 record 들의 첫 번째(imageOrder=1) 이미지만 조회.
+    // record 당 이미지가 5장 이내라 record_id 필터만으로 충분히 가벼움 (윈도우 함수 불필요).
+    // 데이터 결함으로 한 record 에 imageOrder=1 이 중복될 수 있어 id ASC 로 정렬해
+    // (호출부에서 첫 번째로 만난 값을 채택하는 방식으로) 결정적으로 하나만 고르도록 한다.
+    @Query("SELECT i.record.id AS recordId, i.imageUrl AS imageUrl " +
+            "FROM Image i WHERE i.record.id IN :recordIds AND i.imageOrder = 1 " +
+            "ORDER BY i.record.id ASC, i.id ASC")
+    List<RecordFirstImageProjection> findFirstImageByRecordIds(@Param("recordIds") Collection<Long> recordIds);
 
-    interface ProjectLatestImageProjection {
-        Long getProjectId();
+    interface RecordFirstImageProjection {
+        Long getRecordId();
         String getImageUrl();
     }
 }

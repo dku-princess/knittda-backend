@@ -47,4 +47,22 @@ public interface RecordRepository extends JpaRepository<Record, Long> {
     @EntityGraph(attributePaths = {"project", "project.user", "project.design"})
     @Query("SELECT DISTINCT r FROM Record r")
     List<Record> findAllWithAssociations();
+
+    // mapToPreviews 1단계: 여러 프로젝트의 "최신 record" id 를 단일 윈도우 함수 쿼리로 조회.
+    // record 레벨에서만 스캔하므로(image 까지 조인하지 않음) 스캔량이 훨씬 작음.
+    // idx_record_project_created_at(project_id, created_at DESC) 인덱스로 filesort 방지. MySQL 8+ 필요.
+    @Query(value =
+            "SELECT t.project_id AS projectId, t.record_id AS recordId FROM (" +
+            "  SELECT r.project_id, r.id AS record_id, " +
+            "         ROW_NUMBER() OVER (PARTITION BY r.project_id ORDER BY r.created_at DESC) AS rn " +
+            "  FROM record r " +
+            "  WHERE r.project_id IN (:projectIds)" +
+            ") t WHERE t.rn = 1",
+            nativeQuery = true)
+    List<ProjectLatestRecordProjection> findLatestRecordIdPerProject(@Param("projectIds") Collection<Long> projectIds);
+
+    interface ProjectLatestRecordProjection {
+        Long getProjectId();
+        Long getRecordId();
+    }
 }
