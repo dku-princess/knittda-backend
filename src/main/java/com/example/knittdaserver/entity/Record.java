@@ -14,9 +14,12 @@ import java.util.List;
 import java.util.Set;
 
 // created_at 인덱스: /feed 기본 정렬(createdAt DESC)이 필터 없이 전체 테이블을 정렬해야 해서 추가.
+// project_id+created_at 복합 인덱스: mapToPreviews 에서 프로젝트별 최신 record 를 찾을 때
+// (project_id IN (...) 필터 + project_id 별 created_at DESC 정렬)에 사용, filesort 방지.
 @Entity
 @Table(name = "record", indexes = {
-        @Index(name = "idx_record_created_at", columnList = "created_at")
+        @Index(name = "idx_record_created_at", columnList = "created_at"),
+        @Index(name = "idx_record_project_created_at", columnList = "project_id, created_at DESC")
 })
 @Getter
 @NoArgsConstructor

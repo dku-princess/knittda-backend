@@ -48,15 +48,21 @@ public interface RecordRepository extends JpaRepository<Record, Long> {
     @Query("SELECT DISTINCT r FROM Record r")
     List<Record> findAllWithAssociations();
 
-    // N+1 방지: 프로젝트별 record 개수를 한 번의 집계 쿼리로 조회.
-    // mapToPreviews 에서 project.getRecords().size() 대신 사용.
-    @Query("SELECT r.project.id AS projectId, COUNT(r.id) AS cnt " +
-            "FROM Record r WHERE r.project.id IN :projectIds " +
-            "GROUP BY r.project.id")
-    List<RecordCountProjection> countByProjectIds(@Param("projectIds") Collection<Long> projectIds);
+    // mapToPreviews 1단계: 여러 프로젝트의 "최신 record" id 를 단일 윈도우 함수 쿼리로 조회.
+    // record 레벨에서만 스캔하므로(image 까지 조인하지 않음) 스캔량이 훨씬 작음.
+    // idx_record_project_created_at(project_id, created_at DESC) 인덱스로 filesort 방지. MySQL 8+ 필요.
+    @Query(value =
+            "SELECT t.project_id AS projectId, t.record_id AS recordId FROM (" +
+            "  SELECT r.project_id, r.id AS record_id, " +
+            "         ROW_NUMBER() OVER (PARTITION BY r.project_id ORDER BY r.created_at DESC) AS rn " +
+            "  FROM record r " +
+            "  WHERE r.project_id IN (:projectIds)" +
+            ") t WHERE t.rn = 1",
+            nativeQuery = true)
+    List<ProjectLatestRecordProjection> findLatestRecordIdPerProject(@Param("projectIds") Collection<Long> projectIds);
 
-    interface RecordCountProjection {
+    interface ProjectLatestRecordProjection {
         Long getProjectId();
-        Long getCnt();
+        Long getRecordId();
     }
 }
