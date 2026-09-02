@@ -8,9 +8,17 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 
 public interface ProjectRepository extends JpaRepository<Project, Long> {
+    // N+1 방지: thumbnail(LAZY) 을 메인 쿼리에서 LEFT JOIN 으로 함께 fetch.
+    @EntityGraph(attributePaths = {"thumbnail"})
     List<Project> findByUserId(Long userId);
+
+    @Override
+    @EntityGraph(attributePaths = {"thumbnail"})
+    Optional<Project> findById(Long id);
+
     List<Project> findByDesignId(Long designId);
     List<Project> findAllByOrderByLastRecordAtDesc();
     // N+1 방지: user, thumbnail 을 메인 쿼리에서 LEFT JOIN 으로 함께 fetch.
