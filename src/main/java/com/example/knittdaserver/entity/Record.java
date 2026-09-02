@@ -4,6 +4,7 @@ import com.example.knittdaserver.dto.UpdateRecordRequest;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.BatchSize;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -12,7 +13,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+// created_at 인덱스: /feed 기본 정렬(createdAt DESC)이 필터 없이 전체 테이블을 정렬해야 해서 추가.
 @Entity
+@Table(name = "record", indexes = {
+        @Index(name = "idx_record_created_at", columnList = "created_at")
+})
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
@@ -32,7 +37,8 @@ public class Record {
     @Column(nullable = false)
     private RecordStatus recordStatus;
 
-    @ElementCollection(fetch = FetchType.EAGER)
+    @ElementCollection(fetch = FetchType.LAZY)
+    @BatchSize(size = 100)
     @CollectionTable(name = "record_tags", joinColumns = @JoinColumn(name = "record_id"))
     @Column(name = "tags")
     @Builder.Default private List<String> tags = new ArrayList<>();

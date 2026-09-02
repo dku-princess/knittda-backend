@@ -11,6 +11,7 @@ import reactor.core.publisher.Mono;
 
 import com.example.knittdaserver.common.metrics.ExternalCallMetrics;
 import com.example.knittdaserver.dto.FeedDto;
+import com.example.knittdaserver.dto.ImageDto;
 import com.example.knittdaserver.dto.RecordResponse;
 import com.example.knittdaserver.dto.FlaskSearchRequest;
 import com.example.knittdaserver.dto.FlaskSearchResponse;
@@ -20,8 +21,11 @@ import com.example.knittdaserver.entity.Record;
 
 import lombok.RequiredArgsConstructor;
 
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -60,6 +64,15 @@ public class FeedService {
         Page<Record> records = sentryTracer.span("db_fetch", "recordRepository.findAll",
             () -> recordRepository.findAll(pageable));
 
+        List<Long> recordIds = records.getContent().stream()
+            .map(Record::getId)
+            .collect(Collectors.toList());
+
+        // images는 findAll()의 EntityGraph에서 제외했으므로(컬렉션 fetch join + Pageable 충돌 방지),
+        // record id 목록으로 한 번에 배치 조회해서 record id별로 묶어둔다.
+        Map<Long, List<ImageDto>> imagesByRecordId = sentryTracer.span("db_fetch_images",
+            "recordRepository.findByRecordIdIn", () -> groupImagesByRecordId(recordIds));
+
         return sentryTracer.span("mapping", "Record -> FeedDto", () -> records
             .map(record -> FeedDto.builder()
                 .userName(record.getProject().getUser().getNickname())
@@ -68,8 +81,20 @@ public class FeedService {
                 .projectId(record.getProject().getId())
                 .designTitle(record.getProject().getDesign().getTitle())
                 .designer(record.getProject().getDesign().getDesigner())
-                .record(RecordResponse.from(record))
+                .record(RecordResponse.from(record, imagesByRecordId.getOrDefault(record.getId(), List.of())))
                 .build()));
+    }
+
+    private Map<Long, List<ImageDto>> groupImagesByRecordId(List<Long> recordIds) {
+        if (recordIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        return recordRepository.findByRecordIdIn(recordIds).stream()
+            .collect(Collectors.groupingBy(
+                image -> image.getRecord().getId(),
+                LinkedHashMap::new,
+                Collectors.mapping(ImageDto::from, Collectors.toList())
+            ));
     }
 
     /**

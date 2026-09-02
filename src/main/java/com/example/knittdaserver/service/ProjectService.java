@@ -1,6 +1,7 @@
 package com.example.knittdaserver.service;
 
 import com.example.knittdaserver.common.metrics.BusinessMetrics;
+import com.example.knittdaserver.common.tracing.SentryTracer;
 import com.example.knittdaserver.common.response.ApiResponseCode;
 import com.example.knittdaserver.common.response.CustomException;
 import com.example.knittdaserver.dto.*;
@@ -44,6 +45,7 @@ public class ProjectService {
     private final S3Service s3Service;
     private final FileUploadService fileUploadService;
     private final BusinessMetrics businessMetrics;
+    private final SentryTracer sentryTracer;
 
     /**
      * 프로젝트 생성
@@ -321,8 +323,10 @@ public class ProjectService {
     @Transactional(readOnly = true)
     public List<ProjectPreviewResponse> getProjectPreviewsLegacy() {
         PageRequest pageRequest = PageRequest.of(0, PROJECT_PREVIEWS_LEGACY_LIMIT);
-        Page<Project> projectPage = projectRepository.findPageByOrderByLastRecordAtDesc(pageRequest);
-        return mapToPreviews(projectPage.getContent());
+        Page<Project> projectPage = sentryTracer.span("db_fetch", "projectRepository.findPageByOrderByLastRecordAtDesc",
+                () -> projectRepository.findPageByOrderByLastRecordAtDesc(pageRequest));
+        return sentryTracer.span("mapping", "mapToPreviews",
+                () -> mapToPreviews(projectPage.getContent()));
     }
 
     // 전체 프로젝트 미리보기 조회 (페이지네이션)
@@ -331,10 +335,11 @@ public class ProjectService {
         int safeSize = Math.min(Math.max(size, 1), PROJECT_PREVIEWS_DEFAULT_SIZE);
         int safePage = Math.max(page, 0);
         PageRequest pageRequest = PageRequest.of(safePage, safeSize);
-        Page<Project> projectPage =
-                projectRepository.findPageByOrderByLastRecordAtDesc(pageRequest);
-        return new org.springframework.data.domain.PageImpl<>(
-                mapToPreviews(projectPage.getContent()), pageRequest, projectPage.getTotalElements());
+        Page<Project> projectPage = sentryTracer.span("db_fetch", "projectRepository.findPageByOrderByLastRecordAtDesc",
+                () -> projectRepository.findPageByOrderByLastRecordAtDesc(pageRequest));
+        List<ProjectPreviewResponse> previews = sentryTracer.span("mapping", "mapToPreviews",
+                () -> mapToPreviews(projectPage.getContent()));
+        return new org.springframework.data.domain.PageImpl<>(previews, pageRequest, projectPage.getTotalElements());
     }
 
     private List<ProjectPreviewResponse> mapToPreviews(List<Project> projects) {

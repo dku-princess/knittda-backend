@@ -2,9 +2,6 @@ services:
   app:
     build: .
     container_name: knittda-app-local
-    # blue(EC2)와 달리 .env 를 반드시 로드해야 함.
-    # 기존 로컬 compose 에 env_file 이 없어서 OPEN_AI_KEY / AWS_* / FIREBASE_SERVICE_ACCOUNT_KEY /
-    # MYSQL_PASSWORD / JWT_SECRET_KEY 가 주입되지 않아 openai.api-key 등 미해결로 기동 실패했었다.
     env_file:
       - .env
     environment:
