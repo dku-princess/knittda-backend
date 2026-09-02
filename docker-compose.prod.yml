@@ -9,7 +9,10 @@ services:
       SPRING_DATASOURCE_URL: jdbc:mysql://knittda-db.c9o4y6280l3u.ap-northeast-2.rds.amazonaws.com:3306/knittda_db
       SPRING_DATASOURCE_USERNAME: admin
       SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD}
-      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      # SPRING_JPA_HIBERNATE_DDL_AUTO 오버라이드 제거함 — application-prod.properties의
+      # spring.jpa.hibernate.ddl-auto=validate가 실제로 적용되도록 함(기존엔 여기서 update로
+      # 덮어써서 prod가 암묵적으로 Hibernate 자동 스키마 변경 모드로 동작하고 있었음).
+      # 이후 스키마 변경은 sql/ 아래 스크립트를 배포 전 RDS에 수동 적용해야 한다.
       SPRING_PROFILES_ACTIVE: prod
       OPENAI_API_KEY: ${OPEN_AI_KEY}
       TZ: Asia/Seoul
@@ -32,7 +35,7 @@ services:
       SPRING_DATASOURCE_URL: jdbc:mysql://knittda-db.c9o4y6280l3u.ap-northeast-2.rds.amazonaws.com:3306/knittda_db
       SPRING_DATASOURCE_USERNAME: admin
       SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD}
-      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      # SPRING_JPA_HIBERNATE_DDL_AUTO 오버라이드 제거함 — app-green과 동일한 이유(위 주석 참고).
       SPRING_PROFILES_ACTIVE: prod
       OPENAI_API_KEY: ${OPEN_AI_KEY}
       TZ: Asia/Seoul
@@ -67,7 +70,9 @@ services:
       SPRING_DATASOURCE_URL: jdbc:mysql://knittda-db.c9o4y6280l3u.ap-northeast-2.rds.amazonaws.com:3306/knittda_test
       SPRING_DATASOURCE_USERNAME: admin
       SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD}
-      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      # SPRING_JPA_HIBERNATE_DDL_AUTO 오버라이드 제거함 — application-staging.properties에 이미
+      # ddl-auto=update가 선언돼 있어 동작은 동일하나, properties 파일과 실제 배포 설정이 다시
+      # 어긋나는 걸 방지하기 위해 여기서도 제거(스키마 정책의 단일 진실 공급원을 properties로 통일).
       SPRING_PROFILES_ACTIVE: staging
       OPENAI_API_KEY: ${OPEN_AI_KEY}
       TZ: Asia/Seoul
