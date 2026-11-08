@@ -12,8 +12,10 @@ import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.S3Object;
+import com.example.knittdaserver.common.metrics.ExternalCallMetrics;
 import com.example.knittdaserver.util.JwtUtil;
 import com.google.firebase.auth.FirebaseAuth;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -239,7 +241,7 @@ class S3ProfileImageBucketIntegrationTest {
     @Test
     @DisplayName("S3: profiles/ 경로로 업로드한 객체를 버킷에서 읽을 수 있다 (S3Service.uploadProfileImage)")
     void uploadProfileImage_thenObjectIsReadableFromBucket() throws IOException {
-        S3Service s3Service = new S3Service(amazonS3);
+        S3Service s3Service = new S3Service(amazonS3, new ExternalCallMetrics(new SimpleMeterRegistry()));
         ReflectionTestUtils.setField(s3Service, "bucketName", bucketName);
 
         File tempFile = File.createTempFile("profile-integration-", ".webp");
